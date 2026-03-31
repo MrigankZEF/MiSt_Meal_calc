@@ -273,9 +273,9 @@ def best_n_matches(query: str, n=3):
 
 from pathlib import Path
 import sys
-# ensure workspace/tools is on path (app live under projects/mist-mealcalc)
-tools_path = Path(__file__).resolve().parents[2] / 'tools'
-sys.path.append(str(tools_path))
+# tools/ sits next to app.py in the repo root
+tools_path = Path(__file__).resolve().parent / 'tools'
+sys.path.insert(0, str(tools_path.parent))
 from model_wrapper import summarize_with_fallback
 
 @app.post('/summarize')
