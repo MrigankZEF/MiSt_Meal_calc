@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.xlsx
+*.xls
+node_modules/
+test-results/

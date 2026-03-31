@@ -973,167 +973,211 @@ function exportPNG(){
   const dishName = document.getElementById('dishName').value.trim() || 'Meal Report';
   const {details, scale, suffix, totalCo2, totalWater, totalLand} = lastResultData;
 
-  // pre-compute items
+  // ── pre-compute items ────────────────────────────────
   const ritems = details.map(d => {
     const co2   = (d.contrib||0)*scale;
     const water = (d.perkg_water!=null&&d.kg) ? d.perkg_water*d.kg*scale : 0;
     const land  = (d.perkg_land !=null&&d.kg) ? d.perkg_land *d.kg*scale : 0;
     const grams = Math.round((d.kg||0)*1000);
-    const amtStr = grams >= 1000 ? (grams/1000).toFixed(2)+' kg' : grams+' g';
-    return { primary: parseName(d.matched||d.requested).primary, co2, water, land, amount: amtStr };
+    const amtStr = grams>=1000 ? (grams/1000).toFixed(2)+' kg' : grams+' g';
+    return { name: parseName(d.matched||d.requested).primary, co2, water, land, amount: amtStr };
   });
 
-  // colours
-  const BG='#F5F2EA', SURFACE='#FFFFFF', GREEN_DEEP='#1A3A2A';
-  const GREEN_LIGHT='#B7E4C7', HINT='#9A9A8A', TEXT='#1A1A18';
+  // ── design tokens (matching HTML template exactly) ──
+  const BG='#F5F2EA', SURFACE='#FFFFFF', GREEN_DEEP='#1A3A2A', GREEN_MID='#2D6A4F';
+  const GREEN_LIGHT='#B7E4C7', GREEN_PALE='#D8F3DC';
+  const HINT='#9A9A8A', MUTED='#5A5A50', TEXT='#1A1A18';
   const CO2_C='#D94F3D', WATER_C='#3A7BBF', LAND_C='#52B788';
-  const BORDER='rgba(26,58,42,0.13)';
+  const BORDER_C='rgba(26,58,42,0.13)';
+  const SAN="DM Sans,Arial,sans-serif", SER="Georgia,'DM Serif Display',serif";
 
-  // layout
-  const W=860, PAD=32, CP=18, R=12, GAP=12;
-  const HEADER_H=96, TOTAL_H=86, EQUIV_H=34, BRK_HEAD=52, ROW_H=52, FOOTER_H=44;
-  const totalH = PAD + HEADER_H + GAP + TOTAL_H + GAP + EQUIV_H + GAP +
-                 (BRK_HEAD + ritems.length*ROW_H + CP) + GAP + FOOTER_H + PAD;
+  // ── layout constants ─────────────────────────────────
+  // HTML: body padding 40, report max-width 860 → inner W = 860
+  const W=860, PAD=40;
+  const GAP=14, R=14, CP=22;    // card-padding=22 matches HTML padding:20px 22px
 
-  const cv = document.createElement('canvas');
+  // section heights derived from HTML measurements
+  const H_HDR  = 110;  // header: 28+22+24 padding + brand(22)+sub(15)+dish(28) ≈ 110
+  const H_CARD = 92;   // total-card: 16+18 padding + label(10)+gap(8)+value(28)+gap(4)+unit(11) = 95
+  const H_EQV  = 30;   // equiv badges pill row
+  const H_BRKH = 44;   // breakdown card header row (col labels + separator)
+  const ROW_H  = 52;   // ing-row: 12+12 padding + name(14)+amount(11) ≈ 52 (matches padding:12px 0 + content)
+  const H_FTR  = 40;   // footer
+  const totalH = PAD + H_HDR + GAP
+               + H_CARD + GAP
+               + H_EQV  + GAP
+               + (H_BRKH + ritems.length*ROW_H + CP) + GAP
+               + H_FTR  + PAD;
+
+  const cv=document.createElement('canvas');
   cv.width=W*2; cv.height=totalH*2;
-  const c = cv.getContext('2d');
-  c.scale(2,2);
+  const cx=cv.getContext('2d');
+  cx.scale(2,2);
 
-  // --- helpers ---
-  function rr(x,y,w,h,r2,fill,stroke){
-    c.beginPath();
-    c.moveTo(x+r2,y);
-    c.arcTo(x+w,y,x+w,y+h,r2); c.arcTo(x+w,y+h,x,y+h,r2);
-    c.arcTo(x,y+h,x,y,r2);     c.arcTo(x,y,x+w,y,r2);
-    c.closePath();
-    if(fill){c.fillStyle=fill;c.fill();}
-    if(stroke){c.strokeStyle=stroke;c.lineWidth=0.5;c.stroke();}
+  // ── helpers ───────────────────────────────────────────
+  function rr(x,y,w,h,rad,fill,stroke){
+    cx.beginPath();
+    cx.moveTo(x+rad,y);
+    cx.arcTo(x+w,y,x+w,y+h,rad); cx.arcTo(x+w,y+h,x,y+h,rad);
+    cx.arcTo(x,y+h,x,y,rad);     cx.arcTo(x,y,x+w,y,rad);
+    cx.closePath();
+    if(fill){cx.fillStyle=fill;cx.fill();}
+    if(stroke){cx.strokeStyle=stroke;cx.lineWidth=0.5;cx.stroke();}
   }
-  function txt(s,x,y,font,color,align='left'){
-    c.font=font; c.fillStyle=color; c.textAlign=align; c.fillText(s,x,y); c.textAlign='left';
+  function t(s,x,y,font,color,align='left'){
+    cx.font=font; cx.fillStyle=color; cx.textAlign=align; cx.fillText(String(s),x,y); cx.textAlign='left';
   }
-  function line(x1,y1,x2,y2,color){
-    c.strokeStyle=color; c.lineWidth=0.5;
-    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke();
+  function hline(x1,x2,y,color='rgba(26,58,42,0.13)'){
+    cx.strokeStyle=color; cx.lineWidth=0.5;
+    cx.beginPath(); cx.moveTo(x1,y); cx.lineTo(x2,y); cx.stroke();
   }
+  function dot(x,y,r2,color){ cx.beginPath(); cx.arc(x,y,r2,0,Math.PI*2); cx.fillStyle=color; cx.fill(); }
 
-  // background
-  c.fillStyle=BG; c.fillRect(0,0,W,totalH);
+  // ── canvas background ─────────────────────────────────
+  cx.fillStyle=BG; cx.fillRect(0,0,W,totalH);
 
   let y=PAD;
 
-  // ── HEADER ──────────────────────────────────────────
-  rr(PAD,y,W-PAD*2,HEADER_H,R,GREEN_DEEP);
-  // subtle circle accent
-  c.save(); c.globalAlpha=0.07;
-  c.beginPath(); c.arc(W-PAD-60,y-20,130,0,Math.PI*2);
-  c.fillStyle='#52B788'; c.fill(); c.restore();
-  // brand
-  txt('MiSt MealCalc', PAD+20, y+30, 'italic 600 20px Georgia,serif', '#fff');
-  txt('Meal Report',   PAD+20, y+50, '400 13px DM Sans,Arial,sans-serif', 'rgba(255,255,255,0.55)');
-  // dish name — large green-light
-  txt(dishName, PAD+20, y+80, '600 24px DM Sans,Arial,sans-serif', GREEN_LIGHT);
-  // top-right meta
+  // ════════════════════════════════════════════════════
+  // HEADER  — green-deep rounded card
+  // ════════════════════════════════════════════════════
+  rr(PAD,y,W-PAD*2,H_HDR,R,GREEN_DEEP);
+  // decorative circle (matches ::before pseudo-element)
+  cx.save(); cx.globalAlpha=0.07;
+  cx.beginPath(); cx.arc(W-PAD-40,y-30,160,0,Math.PI*2);
+  cx.fillStyle='#52B788'; cx.fill(); cx.restore();
+
+  // brand — left column
+  t('MiSt MealCalc', PAD+28, y+34, `italic 600 22px ${SER}`,         '#fff');
+  t('Meal Report',   PAD+28, y+54, `400 14px ${SAN}`,                 'rgba(255,255,255,0.65)');
+  // dish name — prominent, green-light, matches an h2 style
+  t(dishName,        PAD+28, y+90, `600 26px ${SAN}`,                 GREEN_LIGHT);
+
+  // meta — right column (matches .header-meta)
   const dateStr=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  txt('RIVM data', W-PAD-20, y+30, '500 11px DM Sans,Arial,sans-serif', 'rgba(255,255,255,0.45)', 'right');
-  txt(dateStr,    W-PAD-20, y+50, '400 11px DM Sans,Arial,sans-serif', 'rgba(255,255,255,0.35)', 'right');
+  t('RIVM data', W-PAD-28, y+34, `500 12px ${SAN}`, 'rgba(255,255,255,0.45)', 'right');
+  t(dateStr,     W-PAD-28, y+54, `400 12px ${SAN}`, 'rgba(255,255,255,0.35)', 'right');
 
-  y += HEADER_H + GAP;
+  y += H_HDR + GAP;
 
-  // ── TOTALS GRID ──────────────────────────────────────
-  const cardW=(W-PAD*2-GAP*2)/3;
+  // ════════════════════════════════════════════════════
+  // TOTALS GRID  — 3 white cards, colored accent stripe
+  // ════════════════════════════════════════════════════
+  const cW=(W-PAD*2-GAP*2)/3;
   [
     {lbl:'CO₂ EQUIVALENT', val:(totalCo2*scale).toFixed(3),   unit:'kg CO₂e'+suffix, color:CO2_C},
     {lbl:'WATER USE',       val:(totalWater*scale).toFixed(3), unit:'m³'+suffix,       color:WATER_C},
     {lbl:'LAND USE',        val:(totalLand*scale).toFixed(3),  unit:'m²a'+suffix,      color:LAND_C},
-  ].forEach((t,i) => {
-    const tx=PAD+i*(cardW+GAP);
-    rr(tx,y,cardW,TOTAL_H,R,SURFACE,BORDER);
-    rr(tx,y,3,TOTAL_H,2,t.color);                                          // accent stripe
-    txt(t.lbl, tx+14, y+20, '600 9px DM Sans,Arial,sans-serif',  HINT);
-    txt(t.val, tx+14, y+54, '600 28px DM Sans,Arial,sans-serif', GREEN_DEEP);
-    txt(t.unit,tx+14, y+72, '400 11px DM Sans,Arial,sans-serif', HINT);
+  ].forEach(({lbl,val,unit,color},i) => {
+    const tx=PAD+i*(cW+GAP);
+    // white card with border
+    rr(tx,y,cW,H_CARD,R,SURFACE,BORDER_C);
+    // 3px left accent stripe — draw as narrow rect clipped to card corners
+    cx.save(); rr(tx,y,cW,H_CARD,R); cx.clip();
+    cx.fillStyle=color; cx.fillRect(tx,y,3,H_CARD);
+    cx.restore();
+    // text — matching HTML: label(10px 600 caps), value(28px serif), unit(11px)
+    // card has padding:16px 18px → baseline starts at ty+16
+    const ti=tx+18;
+    t(lbl,         ti, y+22,  `600 9px ${SAN}`,  HINT);       // label: 10px → 9px canvas
+    t(val,         ti, y+62,  `600 28px ${SER}`,  GREEN_DEEP); // large serif number
+    t(unit,        ti, y+78,  `400 11px ${SAN}`,  HINT);       // unit
   });
 
-  y += TOTAL_H + GAP;
+  y += H_CARD + GAP;
 
-  // ── EQUIVALENCY BADGES ───────────────────────────────
+  // ════════════════════════════════════════════════════
+  // EQUIVALENCY BADGES  — 3 pills
+  // ════════════════════════════════════════════════════
   const badges=[
-    {text:'≈ '+(totalCo2*scale/0.150).toFixed(1)+' km driven',           bg:'#FCEAE9', fg:'#8B2A2A'},
-    {text:'≈ '+(totalWater*scale/0.065).toFixed(1)+' showers of water',  bg:'#F4E4B0', fg:'#7A5C00'},
-    {text:'≈ '+(totalCo2*scale/21).toFixed(2)+' trees/yr to offset',     bg:'#D8F3DC', fg:'#2D6A4F'},
+    {text:'≈ '+(totalCo2*scale/0.150).toFixed(1)+' km driven',          bg:'#FCEAE9', fg:'#8B2A2A'},
+    {text:'≈ '+(totalWater*scale/0.065).toFixed(1)+' showers of water', bg:'#F4E4B0', fg:'#7A5C00'},
+    {text:'≈ '+(totalCo2*scale/21).toFixed(2)+' trees/yr to offset',    bg:GREEN_PALE, fg:GREEN_MID},
   ];
   let bx=PAD;
-  badges.forEach(b => {
-    c.font='500 11px DM Sans,Arial,sans-serif';
-    const bw=c.measureText(b.text).width+22, bh=24;
-    rr(bx,y+2,bw,bh,12,b.bg);
-    txt(b.text, bx+11, y+18, '500 11px DM Sans,Arial,sans-serif', b.fg);
-    bx += bw+8;
+  cx.font=`500 11px ${SAN}`;
+  badges.forEach(b=>{
+    const bw=cx.measureText(b.text).width+24, bh=26;
+    rr(bx,y,bw,bh,13,b.bg);
+    t(b.text, bx+12, y+17, `500 11px ${SAN}`, b.fg);
+    bx+=bw+8;
   });
 
-  y += EQUIV_H + GAP;
+  y += H_EQV + GAP;
 
-  // ── BREAKDOWN CARD ───────────────────────────────────
-  const bcardH = BRK_HEAD + ritems.length*ROW_H + CP;
-  rr(PAD,y,W-PAD*2,bcardH,R,SURFACE,BORDER);
+  // ════════════════════════════════════════════════════
+  // INGREDIENT BREAKDOWN CARD
+  // matching HTML: grid-template-columns: 160px 1fr 72px; gap:12px
+  // ════════════════════════════════════════════════════
+  const bcardH = H_BRKH + ritems.length*ROW_H + CP;
+  rr(PAD,y,W-PAD*2,bcardH,R,SURFACE,BORDER_C);
 
-  const NAME_W=160, BAR_X=PAD+CP+NAME_W+12;
-  const BAR_W=W-PAD*2-CP*2-NAME_W-12-80, VAL_X=BAR_X+BAR_W+10;
+  // column geometry — matches HTML grid exactly
+  const IC  = PAD+CP;                      // inner card x-start
+  const IW  = W-PAD*2-CP*2;               // inner card width
+  const NW  = 160;                         // name column
+  const VW  = 72;                          // CO2 value column
+  const G12 = 12;                          // grid gap
+  const BX  = IC+NW+G12;                  // bar x-start
+  const BW  = IW-NW-G12-G12-VW;          // bar width
+  const VX  = BX+BW+G12;                  // value x-start
 
-  // header row inside card
-  let iy=y+CP;
-  txt('INGREDIENT', PAD+CP, iy+12, '600 9px DM Sans,Arial,sans-serif', HINT);
+  // breakdown card header row
+  let hy=y+CP;
+  t('INGREDIENT', IC, hy+12, `600 9px ${SAN}`, HINT);
+  // legend dots + labels (inline, left of bar area)
   [[CO2_C,'CO₂'],[WATER_C,'Water'],[LAND_C,'Land']].forEach(([col,lbl],i)=>{
-    const lx=BAR_X+i*58;
-    c.beginPath(); c.arc(lx+4,iy+8,4,0,Math.PI*2); c.fillStyle=col; c.fill();
-    txt(lbl, lx+11, iy+12, '500 9px DM Sans,Arial,sans-serif', HINT);
+    const lx=BX+i*60;
+    dot(lx+4, hy+8, 4, col);
+    t(lbl, lx+12, hy+12, `500 10px ${SAN}`, HINT);
   });
-  txt('CO₂ (kg)', VAL_X+60, iy+12, '600 9px DM Sans,Arial,sans-serif', HINT, 'right');
+  // "proportion" label
+  t('PROPORTION', BX+190, hy+12, `600 9px ${SAN}`, HINT);
+  t('CO₂ (kg)', VX+VW, hy+12, `600 9px ${SAN}`, HINT, 'right');
 
-  iy+=22;
-  line(PAD+CP, iy, W-PAD-CP, iy, BORDER);
-  iy+=6;
+  hy += 20;
+  hline(IC, W-PAD-CP, hy, BORDER_C);
+  hy += 4;
 
-  // ingredient rows
-  ritems.forEach((item,i) => {
-    const ry=iy+i*ROW_H;
-    // alt row tint
-    if(i%2===0){ c.save(); c.globalAlpha=0.03; c.fillStyle='#1A3A2A'; c.fillRect(PAD+4,ry-2,W-PAD*2-8,ROW_H); c.restore(); }
+  // ingredient rows — matches .ing-row padding:12px 0
+  ritems.forEach((item,i)=>{
+    const ry=hy+i*ROW_H;
 
-    // name + amount
-    const nm=item.primary.length>20 ? item.primary.slice(0,19)+'…' : item.primary;
-    txt(nm,         PAD+CP, ry+18, '500 13px DM Sans,Arial,sans-serif', TEXT);
-    txt(item.amount,PAD+CP, ry+32, '400 10px DM Sans,Arial,sans-serif', HINT);
+    // name (14px 500) + amount (11px hint) — matches .ing-name / .ing-amount
+    const nm=item.name.length>22 ? item.name.slice(0,21)+'…' : item.name;
+    t(nm,          IC, ry+20, `500 13px ${SAN}`, TEXT);
+    t(item.amount, IC, ry+35, `400 10px ${SAN}`, HINT);
 
-    // stacked proportion bar
+    // stacked bar — matches .stacked-bar height:20px, background:#F0EDE6
+    const BAR_H=20, barY=ry+(ROW_H-BAR_H)/2;
+    rr(BX,barY,BW,BAR_H,4,'#F0EDE6');
     const tot=item.co2+item.water+item.land||1;
-    const BAR_H=18, barY=ry+(ROW_H-BAR_H)/2;
-    rr(BAR_X,barY,BAR_W,BAR_H,3,'#F0EDE6');
-    let sx=BAR_X;
+    let sx=BX;
     [[item.co2/tot,CO2_C],[item.water/tot,WATER_C],[item.land/tot,LAND_C]].forEach(([f,col])=>{
-      const sw=Math.max(0,f*BAR_W); if(sw<1) return;
-      c.fillStyle=col; c.globalAlpha=0.82; c.fillRect(sx,barY,sw,BAR_H); c.globalAlpha=1; sx+=sw;
+      const sw=Math.max(0,f*BW); if(sw<1) return;
+      cx.save(); rr(BX,barY,BW,BAR_H,4); cx.clip();
+      cx.fillStyle=col; cx.globalAlpha=0.82; cx.fillRect(sx,barY,sw,BAR_H);
+      cx.globalAlpha=1; cx.restore(); sx+=sw;
     });
-    rr(BAR_X,barY,BAR_W,BAR_H,3,null,'rgba(0,0,0,0.04)');
 
-    // CO2 value
-    txt(item.co2.toFixed(3), VAL_X+60, ry+24, '600 13px DM Sans,Arial,sans-serif', CO2_C, 'right');
+    // CO2 value (14px 600 co2-color, right-aligned) — matches .ing-co2-val
+    t(item.co2.toFixed(3), VX+VW, ry+26, `600 14px ${SAN}`, CO2_C, 'right');
 
-    // row separator
-    if(i<ritems.length-1) line(PAD+CP, ry+ROW_H-1, W-PAD-CP, ry+ROW_H-1, BORDER);
+    // row separator (skip last)
+    if(i<ritems.length-1) hline(IC, W-PAD-CP, ry+ROW_H, BORDER_C);
   });
 
   y += bcardH + GAP;
 
-  // ── FOOTER ───────────────────────────────────────────
-  line(PAD,y+8,W-PAD,y+8,BORDER);
-  txt('Generated by MiSt MealCalc · RIVM environmental impact database', PAD, y+24,
-      '400 10px DM Sans,Arial,sans-serif', HINT);
-  txt('MiSt', W-PAD, y+24, 'italic 600 14px Georgia,serif', HINT, 'right');
+  // ════════════════════════════════════════════════════
+  // FOOTER  — matches .footer (border-top, flex space-between)
+  // ════════════════════════════════════════════════════
+  hline(PAD, W-PAD, y+8, BORDER_C);
+  t('Generated by MiSt MealCalc · RIVM environmental impact database · mist-mealcalc',
+    PAD, y+26, `400 10px ${SAN}`, HINT);
+  t('MiSt', W-PAD, y+26, `italic 600 13px ${SER}`, HINT, 'right');
 
-  // download
+  // ── download ─────────────────────────────────────────
   const slug=dishName.replace(/[^a-z0-9]+/gi,'-').toLowerCase()||'meal';
   const a=document.createElement('a');
   a.href=cv.toDataURL('image/png');
