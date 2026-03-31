@@ -1,0 +1,208 @@
+
+<!doctype html>
+<html>
+<head><meta charset=utf-8><title>MiSt MealCalc (demo)</title></head>
+<style>
+:root{--bg:#fafafa;--card:#fff;--muted:#6b7280;--accent:#2563eb;--accent-2:#ff7043}
+body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:var(--bg);color:#111;margin:0;padding:18px}
+.container{max-width:1100px;margin:14px auto;display:grid;grid-template-columns:1fr 420px;gap:20px}
+.panel{background:var(--card);border-radius:10px;padding:16px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
+.card{border:1px solid #eef2f7;padding:10px;border-radius:8px;margin-bottom:8px;background:transparent}
+.chips{display:flex;gap:8px;margin-bottom:12px}
+.chip{background:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 4px 10px rgba(16,24,40,0.04);font-weight:700}
+.small{font-size:0.9em;color:var(--muted)}
+.impact{height:10px;background:#f3f4f6;border-radius:999px;overflow:hidden}
+.impact > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#60a5fa)}
+button{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+button.secondary{background:#f3f4f6;color:#111}
+input, select{padding:8px;border-radius:8px;border:1px solid #e6eef8}
+label{display:block;margin-bottom:6px;font-weight:600}
+.result-row{display:flex;justify-content:space-between;align-items:center}
+@media(max-width:900px){.container{grid-template-columns:1fr;padding:12px}}
+</style>
+<body
+<h2>MiSt MealCalc — demo</h2>
+<div>
+  <label>Ingredient search: <input id=q value="potatoes"></label>
+  <button onclick="search()">Search</button>
+  <div style="margin-bottom:12px">
+    <h1 style="margin:0">Know the real impact of every meal</h1>
+    <div class="small">From a quick voice→transcript to CO2, water and land footprints — see the environmental cost and swap to lower‑impact choices in seconds.</div>
+    <ul style="margin-top:8px">
+      <li>Instant voice→transcript→impact calculation</li>
+      <li>CO2, water and land metrics side‑by‑side</li>
+      <li>One‑tap low‑impact swaps and exportable summaries</li>
+    </ul>
+  </div>
+  <div id=results></div>
+  <hr>
+  <label>Selected match: <input id=selected readonly style="width:60%"></label>
+  <button id=addBtn onclick="addToMeal()">Add to meal</button>
+  <h3>Meal</h3>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+    <label class="small" style="margin:0">Display:</label>
+    <select id="displayMode"><option value="serving">per serving</option><option value="100g">per 100g</option></select>
+    <button class="secondary" style="margin-left:8px" onclick="exportMeal()">Export CSV</button> <button class="secondary" style="margin-left:8px" onclick="checkMissing()">Check missing footprints</button>
+  </div>
+  <div id=mealList></div>
+    <div class="chips" id=totalsRow>
+      <div class="chip" id=chip_co2>CO2: n/a</div>
+      <div class="chip" id=chip_water>Water: n/a</div>
+      <div class="chip" id=chip_land>Land: n/a</div>
+    </div>
+  <button onclick="calculateMeal()">Calculate meal</button>
+  <div id=mealResult></div>
+  <div id=missingReport style="margin-top:12px" class="small"></div>
+</div>
+<script>
+async function search(){
+  const q=document.getElementById('q').value;
+  const res=await fetch('/ingredient?name='+encodeURIComponent(q));
+  if(!res.ok){
+    document.getElementById('results').textContent = 'No matches found';
+    return;
+  }
+  const data = await res.json();
+  const out = data.matches || [];
+  const el = document.getElementById('results');
+  el.innerHTML = '';
+  out.forEach((m, i) => {
+    const d = document.createElement('div');
+    d.style.padding='6px';
+    d.style.borderBottom='1px solid #eee';
+    d.innerHTML = `<b>${m.name}</b> <small>(score: ${m.score})</small><br>`;
+    const btn = document.createElement('button');
+    btn.textContent = 'Select';
+    btn.onclick = ()=>{ document.getElementById('selected').value = m.name; };
+    d.appendChild(btn);
+    el.appendChild(d);
+  });
+}
+// Auto-run initial search disabled for stability; click Search button to query
+
+// client-side meal builder
+let meal = [];
+
+function addToMeal(){
+  const sel = document.getElementById('selected').value;
+  if(!sel){ alert('Select a match first'); return; }
+  // default amount & unit
+  // default amount & unit
+  let defaultAmount = 100; let defaultUnit='g';
+  // small heuristic for pieces: if name contains common words, set piece weights
+  const lname = sel.toLowerCase();
+  if(lname.includes('carrot')){ defaultAmount = 61; defaultUnit='g' }
+  if(lname.includes('onion')){ defaultAmount = 110; defaultUnit='g' }
+  if(lname.includes('tomato')){ defaultAmount = 123; defaultUnit='g' }
+  if(lname.includes('egg')){ defaultAmount = 50; defaultUnit='g' }
+  meal.push({name: sel, amount: defaultAmount, unit: defaultUnit});
+  renderMealList();
+}
+
+function renderMealList(){
+  const el = document.getElementById('mealList');
+  el.innerHTML = '';
+  meal.forEach((it, idx) => {
+    const row = document.createElement('div');
+    row.style.border='1px solid #ddd'; row.style.margin='6px'; row.style.padding='6px';
+    row.innerHTML = `<b>${it.name}</b> 
+ Amount: <input value='${it.amount}' id='amt${idx}' style='width:80px'> <select id='unit${idx}'><option>g</option><option>kg</option><option>ml</option><option>tsp</option><option>piece</option></select> <button onclick='removeItem(${idx})'>Remove</button>`;
+    el.appendChild(row);
+    document.getElementById(`unit${idx}`).value = it.unit;
+  });
+}
+
+function removeItem(i){ meal.splice(i,1); renderMealList(); }
+
+async function calculateMeal(){
+  // collect current values
+  const items = meal.map((it, idx)=>({
+    name: it.name,
+    amount: parseFloat(document.getElementById(`amt${idx}`).value || it.amount),
+    unit: document.getElementById(`unit${idx}`).value || it.unit
+  }));
+  const res = await fetch('/meal', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})});
+  const data = await res.json();
+  // render a friendly result
+  const el = document.getElementById('mealResult'); el.innerHTML = '';
+  const total = data.total_co2_kgCO2eq;
+  const header = document.createElement('div'); header.className='card'; header.innerHTML = `<b>Total CO2:</b> ${total.toFixed(3)} kg CO2-eq`;
+  el.appendChild(header);
+  // update totals chips
+  let total_water = 0; let total_land = 0;
+  try{ if(data.details) data.details.forEach(di=>{ if(di.perkg_water) total_water += di.perkg_water*di.kg; if(di.perkg_land) total_land += di.perkg_land*di.kg; }); }catch(e){}
+  document.getElementById('chip_co2').textContent = 'CO2: ' + (data.total_co2_kgCO2eq||0).toFixed(3) + ' kg';
+  document.getElementById('chip_water').textContent = 'Water: ' + (total_water||0).toFixed(3) + ' m3';
+  document.getElementById('chip_land').textContent = 'Land: ' + (total_land||0).toFixed(3) + ' m2a';
+
+  data.details.forEach(d => {
+    const r = document.createElement('div'); r.className='card';
+    // display mode
+    const mode = document.getElementById('displayMode').value;
+    let displayLine = '';
+    let extra = '';
+    if(d.perkg_water){ let w = (d.perkg_water * d.kg); extra += `<div class="small">💧 Water: ${ (d.perkg_water).toFixed(3) } m3/kg — contrib ${w.toFixed(3)} m3</div>`; }
+    if(d.perkg_land){ let l = (d.perkg_land * d.kg); extra += `<div class="small">🌱 Land: ${ (d.perkg_land).toFixed(3) } m2a/kg — contrib ${l.toFixed(3)} m2a</div>`; }
+    if(mode==='100g'){
+      const co2_100 = (d.perkg||0) * 0.1;
+      displayLine += `<div class="small">🟢 CO2 per 100g: ${co2_100.toFixed(3)} kg</div>`;
+      if(d.perkg_water) displayLine += `<div class="small">💧 Water per 100g: ${(d.perkg_water*0.1).toFixed(3)} m3</div>`;
+      if(d.perkg_land) displayLine += `<div class="small">🌱 Land per 100g: ${(d.perkg_land*0.1).toFixed(3)} m2a</div>`;
+    } else {
+      displayLine += `perkg: ${d.perkg} kg CO2/kg — amount: ${d.kg} kg — contrib: ${d.contrib.toFixed(3)} kg CO2` + extra;
+    }
+    // alternative suggestion button
+    let altHtml = '';
+    if(d.alternative){ altHtml = `<div class="small">Suggestion: <b>${d.alternative.name}</b> (−${d.alternative.delta.toFixed(2)} kg CO2/kg) <button onclick="swapItem('${d.requested}','${d.alternative.name}')">Swap</button></div>` }
+    r.innerHTML = `<b>${d.requested}</b> <span class='small'>matched: ${d.matched} (score ${d.score})</span><br>` + displayLine + altHtml;
+    const bar = document.createElement('div'); bar.className='impact'; const barFill = document.createElement('i');
+    let pct = Math.min(100, Math.round((d.contrib / Math.max(0.001,total)) * 1000));
+    barFill.style.width = pct + '%'; if(pct>50) barFill.style.background='#ff7043';
+    bar.appendChild(barFill); r.appendChild(document.createElement('br')); r.appendChild(bar);
+    el.appendChild(r);
+  })
+</span><br>` + displayLine;
+    const bar = document.createElement('div'); bar.className='impact'; const barFill = document.createElement('i');
+    let pct = Math.min(100, Math.round((d.contrib / Math.max(0.001,total)) * 1000));
+    barFill.style.width = pct + '%'; if(pct>50) barFill.style.background='#ff7043';
+    bar.appendChild(barFill); r.appendChild(document.createElement('br')); r.appendChild(bar);
+    el.appendChild(r);
+  })
+}
+
+
+async function checkMissing(){
+  const items = meal.map((it, idx)=>({name: it.name}));
+  const res = await fetch('/missing',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({items})});
+  if(!res.ok){ document.getElementById('missingReport').textContent = 'Check failed'; return; }
+  const json = await res.json();
+  if(json.missing && json.missing.length){
+    const lines = json.missing.map(m=> m.requested + (m.matched? ' -> matched: '+m.matched : '') + '');
+    document.getElementById('missingReport').innerHTML = '<b>Missing footprints:</b><br>'+lines.join('<br>');
+  } else {
+    document.getElementById('missingReport').innerHTML = '<b>No missing footprints (RIVM coverage OK)</b>';
+  }
+}
+
+function swapItem(requested, altName){
+  // find first meal item with matching requested name and replace with altName
+  for(let i=0;i<meal.length;i++){
+    if(meal[i].name===requested){ meal[i].name = altName; break; }
+  }
+  renderMealList();
+}
+
+async function exportMeal(){
+  // gather current items and POST to /export to download CSV
+  const items = meal.map((it, idx)=>({name: it.name, amount: parseFloat(document.getElementById(`amt${idx}`).value || it.amount), unit: document.getElementById(`unit${idx}`).value || it.unit}));
+  const res = await fetch('/export', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({items})});
+  if(!res.ok){ alert('Export failed'); return; }
+  const csv = await res.text();
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='meal-export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+</script>
+</body>
+</html>
