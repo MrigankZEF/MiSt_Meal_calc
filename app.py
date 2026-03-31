@@ -272,19 +272,6 @@ def best_n_matches(query: str, n=3):
     return out
 
 from pathlib import Path
-import sys
-# tools/ sits next to app.py in the repo root
-tools_path = Path(__file__).resolve().parent / 'tools'
-sys.path.insert(0, str(tools_path.parent))
-from model_wrapper import summarize_with_fallback
-
-@app.post('/summarize')
-def summarize(payload: dict):
-    prompt = payload.get('text','')
-    if not prompt:
-        raise HTTPException(status_code=400, detail='text required')
-    out = summarize_with_fallback(prompt)
-    return out
 
 
 class Ingredient(BaseModel):
