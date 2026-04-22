@@ -60,6 +60,13 @@ class Meal(UserBase):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
+    # Cached environmental totals — computed at save time from RIVM reference DB
+    total_co2_kg:   Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_water_m3: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_land_m2a: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_so2_kg:   Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_p_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_n_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="meals")
     ingredients: Mapped[list[MealIngredient]] = relationship(
@@ -111,6 +118,13 @@ class ProcurementEntry(UserBase):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
+    # Cached environmental totals — computed at save time from RIVM reference DB
+    total_co2_kg:   Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_water_m3: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_land_m2a: Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_so2_kg:   Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_p_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
+    total_n_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="procurement_entries")
     items: Mapped[list[ProcurementItem]] = relationship(

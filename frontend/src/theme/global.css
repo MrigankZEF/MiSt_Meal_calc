@@ -1429,6 +1429,201 @@ select.ingredient-variant {
 }
 
 /* ------------------------------------------------------------------ */
+/* History — CO₂ badge on cards + sort bar                           */
+/* ------------------------------------------------------------------ */
+.history-card-co2 {
+  font-weight: 600;
+  color: var(--green-deep);
+}
+
+.history-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.history-sort-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.history-sort-select {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 5px 10px;
+  cursor: pointer;
+  outline: none;
+}
+.history-sort-select:focus {
+  border-color: var(--green-mid);
+}
+
+/* ------------------------------------------------------------------ */
+/* Procurement Dashboard                                              */
+/* ------------------------------------------------------------------ */
+.procurement-dashboard {
+  /* no extra wrapper padding — uses history-page's padding */
+}
+
+.dash-period-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dash-period-tab {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 5px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.dash-period-tab:hover {
+  border-color: var(--green-mid);
+  color: var(--green-deep);
+}
+.dash-period-tab.active {
+  background: var(--green-deep);
+  border-color: var(--green-deep);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 6-card metric grid */
+.dash-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 640px) {
+  .dash-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.dash-metric-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-metric-card--co2 {
+  background: var(--green-pale);
+  border-color: var(--green-light);
+}
+
+.dash-metric-value {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  color: var(--green-deep);
+  line-height: 1;
+}
+.dash-metric-unit {
+  font-size: 11px;
+  color: var(--hint);
+  margin-top: 2px;
+}
+.dash-metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Summary line */
+.dash-summary {
+  font-size: 13px;
+  color: var(--hint);
+  margin-bottom: 20px;
+}
+
+/* CO₂ trend chart */
+.dash-trend {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.dash-trend-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hint);
+  margin-bottom: 12px;
+}
+
+.dash-trend-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 120px 52px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.dash-trend-row:last-child { margin-bottom: 0; }
+
+.dash-trend-date {
+  font-size: 11px;
+  color: var(--hint);
+  white-space: nowrap;
+}
+
+.dash-trend-name {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-trend-track {
+  height: 8px;
+  background: var(--bg-alt);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dash-trend-fill {
+  height: 100%;
+  background: var(--green-mid);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.dash-trend-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green-deep);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dash-order-list-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hint);
+  margin-bottom: 10px;
+}
+
+/* ------------------------------------------------------------------ */
 /* Save-meal section (inside results panel)                           */
 /* ------------------------------------------------------------------ */
 .save-meal-section {

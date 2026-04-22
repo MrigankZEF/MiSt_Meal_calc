@@ -38,6 +38,12 @@ class MealOut(BaseModel):
     name: str
     notes: str
     created_at: datetime
+    total_co2_kg:   float | None = None
+    total_water_m3: float | None = None
+    total_land_m2a: float | None = None
+    total_so2_kg:   float | None = None
+    total_p_kg:     float | None = None
+    total_n_kg:     float | None = None
     ingredients: list[MealIngredientOut]
 
 
@@ -51,3 +57,9 @@ class MealListItem(BaseModel):
     notes: str
     created_at: datetime
     ingredient_count: int
+    total_co2_kg:   float | None = None
+    total_water_m3: float | None = None
+    total_land_m2a: float | None = None
+    total_so2_kg:   float | None = None
+    total_p_kg:     float | None = None
+    total_n_kg:     float | None = None

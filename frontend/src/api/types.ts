@@ -127,7 +127,16 @@ export interface MealIngredientOut {
   position: number;
 }
 
-export interface MealOut {
+export interface MealTotals {
+  total_co2_kg:   number | null;
+  total_water_m3: number | null;
+  total_land_m2a: number | null;
+  total_so2_kg:   number | null;
+  total_p_kg:     number | null;
+  total_n_kg:     number | null;
+}
+
+export interface MealOut extends MealTotals {
   id: string;
   name: string;
   notes: string;
@@ -135,7 +144,7 @@ export interface MealOut {
   ingredients: MealIngredientOut[];
 }
 
-export interface MealListItem {
+export interface MealListItem extends MealTotals {
   id: string;
   name: string;
   notes: string;
@@ -191,7 +200,16 @@ export interface ProcurementItemOut {
   position: number;
 }
 
-export interface ProcurementOut {
+export interface ProcurementTotals {
+  total_co2_kg:   number | null;
+  total_water_m3: number | null;
+  total_land_m2a: number | null;
+  total_so2_kg:   number | null;
+  total_p_kg:     number | null;
+  total_n_kg:     number | null;
+}
+
+export interface ProcurementOut extends ProcurementTotals {
   id: string;
   name: string;
   notes: string;
@@ -199,7 +217,7 @@ export interface ProcurementOut {
   items: ProcurementItemOut[];
 }
 
-export interface ProcurementListItem {
+export interface ProcurementListItem extends ProcurementTotals {
   id: string;
   name: string;
   notes: string;
