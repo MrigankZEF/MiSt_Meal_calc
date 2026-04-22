@@ -17,8 +17,10 @@ class Settings(BaseSettings):
     # SQLite for committed reference data (RIVM + NEVO + EAT-Lancet tags)
     reference_db_url: str = f"sqlite:///{DEFAULT_REFERENCE_DB.as_posix()}"
 
-    # Postgres for per-org user data (meals, procurement, auth).
-    user_db_url: str = "postgresql+psycopg://mist:mist@localhost:5432/mist"
+    # User data DB.
+    # Dev default: SQLite file next to reference.db — no Postgres needed locally.
+    # Production (Railway): set USER_DB_URL=postgresql+psycopg://... in env vars.
+    user_db_url: str = f"sqlite+aiosqlite:///{(DATA_DIR / 'user.db').as_posix()}"
 
     # JWT secret — MUST be overridden via SECRET_KEY env var in production.
     secret_key: str = "dev-insecure-secret-change-in-production"
