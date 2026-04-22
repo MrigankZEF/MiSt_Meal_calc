@@ -1,0 +1,26 @@
+:root {
+  --bg: #F5F2EA;
+  --bg-alt: #EAE6DA;
+  --surface: #FFFFFF;
+
+  --green-deep: #1A3A2A;
+  --green-mid: #2D6A4F;
+  --green-bright: #52B788;
+  --green-light: #B7E4C7;
+  --green-pale: #D8F3DC;
+
+  --amber: #D4A017;
+  --amber-light: #F4E4B0;
+
+  --text: #1A1A18;
+  --muted: #5A5A50;
+  --hint: #9A9A8A;
+
+  --red: #E8523A;
+
+  --border: rgba(26, 58, 42, 0.15);
+  --border-strong: rgba(26, 58, 42, 0.30);
+
+  --r: 6px;
+  --r-lg: 12px;
+}

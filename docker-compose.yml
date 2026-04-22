@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mist
+      POSTGRES_PASSWORD: mist
+      POSTGRES_DB: mist
+    ports:
+      - "5432:5432"
+    volumes:
+      - mist_pg_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: dev
+      USER_DB_URL: postgresql+psycopg://mist:mist@db:5432/mist
+      CORS_ORIGINS: '["http://localhost:5173"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/scripts:/app/scripts
+      - ./data:/app/../data:ro
+    depends_on:
+      - db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  mist_pg_data:

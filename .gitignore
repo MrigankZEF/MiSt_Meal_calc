@@ -1,9 +1,33 @@
+# python
 .venv/
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
 .env
-*.xlsx
-*.xls
+
+# data — source spreadsheets are sensitive/large; reference.db is committed
+data/user.db
+data/source/*.xlsx
+data/source/*.xls
+data/source/*.xlsx:Zone.Identifier
+*:Zone.Identifier
+
+# node
 node_modules/
+dist/
+.vite/
+
+# editors
+.vscode/
+.idea/
+
+# artefacts
 test-results/
+
+# os
+.DS_Store
+Thumbs.db

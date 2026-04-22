@@ -1,21 +1,70 @@
-MiSt MealCalc — local run instructions
+# MiSt
 
-Requirements
-- Python 3.10+
-- (recommended) create and activate the provided virtualenv: `.venv`
-- packages: fastapi, uvicorn, pandas, rapidfuzz
+Sustainability analytics for caterers. Two modes — **procurement** (bulk-buy analysis) and **meal** (per-dish analysis) — built on the Dutch RIVM environmental database and the NEVO nutrition database.
 
-Quick run (from project root `projects/mist-mealcalc`):
+See [VISION.md](VISION.md) for the full product vision, architecture, and phase plan. This is a living document — every session updates it.
 
-1) Activate venv:
-   source .venv/bin/activate
-2) Install deps (if not already installed):
-   pip install fastapi uvicorn pandas rapidfuzz
-3) Start server:
-   .venv/bin/uvicorn app:app --host 127.0.0.1 --port 9000
-4) Open http://127.0.0.1:9000 in a browser
+## Repo layout
 
-Notes
-- The app reads footprints from `rivm.db` (already present). Do not replace this DB unless you mean to update the RIVM dataset.
-- Local piece weights and synonyms are stored in `data/ingredients.csv` and are used only for unit heuristics (not for per-kg footprints).
-- To export a meal, the demo UI calls `/export` which returns a CSV summary.
+| Path | What |
+|---|---|
+| [backend/](backend) | FastAPI API (Python 3.12) |
+| [frontend/](frontend) | React + Vite + TypeScript |
+| [data/](data) | Committed reference data (SQLite + source xlsx, gitignored) |
+| [legacy/](legacy) | v1 single-file app preserved for reference |
+| [VISION.md](VISION.md) | Living vision / audit doc |
+
+## Quickstart
+
+### With Docker (recommended)
+
+```bash
+docker compose up
+```
+
+- Backend at http://localhost:8000 — `GET /health` returns `{"status":"ok"}`
+- Frontend at http://localhost:5173
+- Postgres at localhost:5432 (user/pw `mist`/`mist`)
+
+### Local (no Docker)
+
+Backend:
+```bash
+cd backend
+python -m venv .venv
+# Windows:   .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -e ".[dev]"
+uvicorn app.main:app --reload
+```
+
+Frontend:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Tests
+
+```bash
+cd backend
+pytest
+```
+
+## Legacy v1
+
+The original single-file app lives in [legacy/](legacy). To run it:
+
+```bash
+cd legacy
+python -m venv .venv && source .venv/bin/activate   # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+uvicorn legacy_app:app --port 9000
+# open http://127.0.0.1:9000
+```
+
+## Deployment
+
+Target: **Railway** (Docker, with a Postgres addon for the user DB).
+Config: [railway.json](railway.json), uses [backend/Dockerfile](backend/Dockerfile).
