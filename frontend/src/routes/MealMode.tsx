@@ -100,6 +100,7 @@ export default function MealMode() {
   const [mealName, setMealName] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -108,12 +109,7 @@ export default function MealMode() {
     if (items.length === 0) setShowResults(false);
   }, [items.length]);
 
-  // Clear saved confirmation after 3 s
-  useEffect(() => {
-    if (!savedOk) return;
-    const t = setTimeout(() => setSavedOk(false), 3000);
-    return () => clearTimeout(t);
-  }, [savedOk]);
+  // savedOk doesn't auto-dismiss — user navigates to History or keeps working
 
   // ── Ingredient handlers ────────────────────────────────────────────────
 
@@ -205,6 +201,7 @@ export default function MealMode() {
     e.preventDefault();
     if (!token || items.length === 0 || saving) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await saveMeal(token, {
         name: mealName.trim() || 'Untitled meal',
@@ -219,7 +216,7 @@ export default function MealMode() {
       setSavedOk(true);
       setMealName('');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Save failed');
+      setSaveError(err instanceof Error ? err.message : 'Save failed — please try again.');
     } finally {
       setSaving(false);
     }
@@ -353,28 +350,47 @@ export default function MealMode() {
                 </div>
               ) : savedOk ? (
                 <div className="save-meal-success">
-                  ✓ Meal saved to your history
+                  <span>✓ Meal saved!</span>
+                  <button
+                    type="button"
+                    className="save-meal-history-link"
+                    onClick={() => navigate('/history')}
+                  >
+                    View in History →
+                  </button>
+                  <button
+                    type="button"
+                    className="save-meal-again"
+                    onClick={() => setSavedOk(false)}
+                  >
+                    Save another name
+                  </button>
                 </div>
               ) : (
-                <form className="save-meal-form" onSubmit={handleSave}>
-                  <input
-                    className="save-meal-input"
-                    type="text"
-                    value={mealName}
-                    onChange={e => setMealName(e.target.value)}
-                    placeholder="Name this meal… (optional)"
-                    maxLength={300}
-                    disabled={saving}
-                  />
-                  <button
-                    className="btn-save-meal"
-                    type="submit"
-                    disabled={saving}
-                  >
-                    <SaveIcon />
-                    {saving ? 'Saving…' : 'Save meal'}
-                  </button>
-                </form>
+                <>
+                  <form className="save-meal-form" onSubmit={handleSave}>
+                    <input
+                      className="save-meal-input"
+                      type="text"
+                      value={mealName}
+                      onChange={e => setMealName(e.target.value)}
+                      placeholder="Name this meal… (optional)"
+                      maxLength={300}
+                      disabled={saving}
+                    />
+                    <button
+                      className="btn-save-meal"
+                      type="submit"
+                      disabled={saving}
+                    >
+                      <SaveIcon />
+                      {saving ? 'Saving…' : 'Save meal'}
+                    </button>
+                  </form>
+                  {saveError && (
+                    <p className="save-meal-error">{saveError}</p>
+                  )}
+                </>
               )}
             </div>
           </div>

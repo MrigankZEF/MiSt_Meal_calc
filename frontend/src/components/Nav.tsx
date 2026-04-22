@@ -59,9 +59,18 @@ export default function Nav() {
 
         {user ? (
           <>
+            {/* History link — only visible when logged in */}
+            <Link
+              to="/history"
+              className={`nav-history-link${location.pathname === '/history' ? ' active' : ''}`}
+            >
+              History
+            </Link>
+
             <span className="nav-user-name" title={user.email}>
               {user.full_name || user.email}
             </span>
+
             <button className="nav-logout" onClick={handleLogout}>
               Sign out
             </button>

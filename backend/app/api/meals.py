@@ -68,9 +68,14 @@ async def create_meal(
     )
     session.add(meal)
     await session.commit()
-    # Refresh to populate the ingredients relationship for serialisation.
-    await session.refresh(meal, ["ingredients"])
-    return meal
+    # Re-fetch with selectinload — more reliable than session.refresh
+    # for relationships on async SQLite.
+    result = await session.execute(
+        select(Meal)
+        .where(Meal.id == meal.id)
+        .options(selectinload(Meal.ingredients))
+    )
+    return result.scalar_one()
 
 
 @router.get("/{meal_id}", response_model=MealOut)
