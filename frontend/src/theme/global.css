@@ -1074,3 +1074,372 @@ select.ingredient-variant {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ------------------------------------------------------------------ */
+/* Nav — P6 auth additions                                             */
+/* ------------------------------------------------------------------ */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-user-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-logout,
+.nav-login {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.80);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.nav-logout:hover,
+.nav-login:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* ------------------------------------------------------------------ */
+/* Login / Register page                                               */
+/* ------------------------------------------------------------------ */
+.login-page {
+  min-height: calc(100vh - 56px);
+  margin-top: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--bg);
+}
+
+.login-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  padding: 40px 44px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 24px rgba(26, 58, 42, 0.08);
+}
+
+.login-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  color: var(--green-deep);
+  margin-bottom: 28px;
+  line-height: 1.2;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.login-input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.login-input:focus {
+  border-color: var(--green-mid);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+}
+.login-input::placeholder {
+  color: var(--hint);
+}
+
+.login-error {
+  font-size: 13px;
+  color: var(--red);
+  background: rgba(232, 82, 58, 0.08);
+  border: 1px solid rgba(232, 82, 58, 0.25);
+  border-radius: var(--r);
+  padding: 8px 12px;
+}
+
+.login-submit {
+  height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.login-toggle-hint {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.login-toggle-link {
+  background: none;
+  border: none;
+  color: var(--green-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+.login-toggle-link:hover {
+  color: var(--green-deep);
+}
+
+/* ------------------------------------------------------------------ */
+/* History page                                                        */
+/* ------------------------------------------------------------------ */
+.history-page {
+  min-height: calc(100vh - 56px);
+  margin-top: 56px;
+  padding: 32px 40px;
+  max-width: 760px;
+}
+
+.history-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.history-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: var(--green-deep);
+}
+
+.history-count {
+  font-size: 13px;
+  color: var(--hint);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.history-card:hover {
+  border-color: var(--green-mid);
+  box-shadow: 0 2px 12px rgba(26, 58, 42, 0.06);
+}
+
+.history-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green-deep);
+  margin-bottom: 4px;
+}
+
+.history-card-notes {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-card-meta {
+  font-size: 12px;
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-card-sep {
+  opacity: 0.5;
+}
+
+.history-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Ghost / icon-only button */
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--hint);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-ghost:hover {
+  background: rgba(232, 82, 58, 0.06);
+  color: var(--red);
+  border-color: rgba(232, 82, 58, 0.3);
+}
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------ */
+/* Save-meal section (inside results panel)                           */
+/* ------------------------------------------------------------------ */
+.save-meal-section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+.save-meal-guest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.save-meal-guest-text {
+  font-size: 13px;
+  color: var(--muted);
+  flex: 1;
+}
+
+.save-meal-signin {
+  font-size: 13px;
+  padding: 6px 16px;
+  white-space: nowrap;
+}
+
+.save-meal-success {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-mid);
+  background: var(--green-pale);
+  border: 1px solid var(--green-light);
+  border-radius: var(--r);
+  padding: 10px 16px;
+  text-align: center;
+}
+
+.save-meal-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.save-meal-input {
+  flex: 1;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+.save-meal-input:focus {
+  border-color: var(--green-mid);
+}
+.save-meal-input::placeholder {
+  color: var(--hint);
+}
+
+.btn-save-meal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  background: var(--green-deep);
+  color: var(--green-pale);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.btn-save-meal:hover:not(:disabled) {
+  background: var(--green-mid);
+}
+.btn-save-meal:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* btn-outline (used in save-meal-signin and history sign-in button) */
+.btn-outline {
+  background: none;
+  border: 1.5px solid var(--green-mid);
+  color: var(--green-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-outline:hover {
+  background: var(--green-pale);
+  color: var(--green-deep);
+}

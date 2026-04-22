@@ -594,6 +594,25 @@ OpenAPI JSON at `/openapi.json`, Swagger UI at `/docs`.
 
 ## 13. Changelog
 
+- **2026-04-22 · Claude (CLI) · P6 complete — auth + meal persistence**
+  - **fastapi-users 15.x** wired up: JWT bearer transport, `BearerTransport` + `JWTStrategy` + `AuthenticationBackend`. Endpoints: `POST /auth/jwt/login`, `POST /auth/jwt/logout`, `POST /auth/register`, `GET /auth/users/me`, `PATCH /auth/users/me`.
+  - **Postgres user DB** via SQLAlchemy async engine (`psycopg3` dialect). Separate `UserBase(DeclarativeBase)` to keep reference-DB (SQLite) and user-DB (Postgres) models strictly isolated.
+  - **Models**: `User` (extends `SQLAlchemyBaseUserTableUUID`, table `auth_user`), `Meal`, `MealIngredient`. `auth_user` used instead of `user` to avoid PostgreSQL reserved word.
+  - **Startup**: `_init_user_tables()` runs `metadata.create_all()` on boot with up-to-10 retries (handles Docker startup ordering). Alembic scaffold (`alembic.ini`, `alembic/env.py`) added for future production migrations.
+  - **Meals API**: `GET /api/meals` (list, newest-first), `POST /api/meals` (create with inline ingredients), `GET /api/meals/{id}`, `DELETE /api/meals/{id}`. All endpoints require valid JWT.
+  - `MealIngredient` stores `primary_name` snapshot so history renders without cross-DB joins. `rivm_item_id` kept for future "reload meal" feature.
+  - **Frontend — AuthContext**: `useAuth()` hook; token persisted in `localStorage`; verifies stored token via `/auth/users/me` on app load; clears on 401.
+  - **Login page**: email + password form with login/register toggle (no separate /register route). On success navigates to `/meal`.
+  - **History page**: lists saved meals (name, date, ingredient count); delete with confirm dialog; "not logged in" and "empty" states.
+  - **MealMode save section**: appears at bottom of results panel. Guest → "Sign in to save" + link. Logged-in → name input + save button. Success flash (3 s).
+  - **Nav**: `nav-right` flex container with RIVM badge + user name + Sign out (logged-in) or Sign in button (guest).
+  - `docker-compose.yml` updated: Postgres `healthcheck` (`pg_isready`); backend `depends_on: db: condition: service_healthy`.
+  - `backend/.env.example` added for local dev without Docker.
+  - Tests: 2 assertions updated to reflect P5 label changes (`"supermarket"` → `"as bought · Ambient"`, `"distribution"` → `"distribution · Ambient"`). All 13 pass.
+  - **Exit criteria met**: register → log in → add ingredients → calculate → save meal → log out → log in → History shows meal.
+
+
+
 Append newest-first. Each entry: date, author, one-line summary, links to any new sections.
 
 - **2026-04-20 · Claude (CLI) · P4 complete — React frontend shell with routing and design system**

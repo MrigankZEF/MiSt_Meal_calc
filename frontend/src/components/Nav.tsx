@@ -1,10 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const SCREEN_TAGS: Record<string, string> = {
   '/meal': 'Meal mode',
   '/procurement': 'Procurement',
   '/history': 'History',
-  '/login': 'Login',
+  '/login': 'Sign in',
 };
 
 function BackArrow() {
@@ -24,8 +25,15 @@ function BackArrow() {
 export default function Nav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
   const screenTag = SCREEN_TAGS[location.pathname];
   const showBack = location.pathname !== '/';
+
+  function handleLogout() {
+    logout();
+    navigate('/');
+  }
 
   return (
     <nav className="nav">
@@ -45,7 +53,28 @@ export default function Nav() {
         </Link>
         {screenTag && <span className="nav-screen-tag">{screenTag}</span>}
       </div>
-      <span className="nav-badge">RIVM data</span>
+
+      <div className="nav-right">
+        <span className="nav-badge">RIVM data</span>
+
+        {user ? (
+          <>
+            <span className="nav-user-name" title={user.email}>
+              {user.full_name || user.email}
+            </span>
+            <button className="nav-logout" onClick={handleLogout}>
+              Sign out
+            </button>
+          </>
+        ) : (
+          <button
+            className="nav-login"
+            onClick={() => navigate('/login')}
+          >
+            Sign in
+          </button>
+        )}
+      </div>
     </nav>
   );
 }

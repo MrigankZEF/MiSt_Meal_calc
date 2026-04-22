@@ -9,6 +9,11 @@ services:
       - "5432:5432"
     volumes:
       - mist_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mist"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
 
   backend:
     build: ./backend
@@ -16,6 +21,7 @@ services:
       ENVIRONMENT: dev
       USER_DB_URL: postgresql+psycopg://mist:mist@db:5432/mist
       CORS_ORIGINS: '["http://localhost:5173"]'
+      SECRET_KEY: dev-insecure-secret-change-in-production
     ports:
       - "8000:8000"
     volumes:
@@ -23,7 +29,8 @@ services:
       - ./backend/scripts:/app/scripts
       - ./data:/app/../data:ro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:

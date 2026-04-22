@@ -14,11 +14,11 @@ def test_meal_mode_returns_grouped_variants(client: TestClient) -> None:
     assert top["nevo_code"] == 100
 
     labels = [v["label"] for v in top["variants"]]
-    # retail "supermarket" plus two consumption prep methods. No distribution.
-    assert set(labels) == {"supermarket", "boiling", "pan frying"}
-    assert all(v["stage"] in {"retail", "consumption"} for v in top["variants"])
-    # Retail sorts before consumption.
-    assert labels[0] == "supermarket"
+    # P5 decision: meal mode shows retail-only to avoid cooking-energy
+    # double-counting. Consumption variants are still in the DB but hidden.
+    # Label format: "as bought" (+ " · <packaging>" when packaging ≠ "Not packed").
+    assert all(v["stage"] == "retail" for v in top["variants"])
+    assert labels[0] == "as bought · Ambient"
 
 
 def test_procurement_mode_returns_distribution_only(client: TestClient) -> None:
@@ -31,7 +31,8 @@ def test_procurement_mode_returns_distribution_only(client: TestClient) -> None:
     assert top["nevo_code"] == 100
     assert len(top["variants"]) == 1
     assert top["variants"][0]["stage"] == "distribution"
-    assert top["variants"][0]["label"] == "distribution"
+    # Label includes packaging when it is not "Not packed".
+    assert top["variants"][0]["label"] == "distribution · Ambient"
 
 
 def test_search_ranks_best_match_first(client: TestClient) -> None:

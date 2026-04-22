@@ -88,6 +88,62 @@ export interface RivmItemDetail {
 }
 
 // ---------------------------------------------------------------------------
+// Auth types
+// ---------------------------------------------------------------------------
+
+export interface UserOut {
+  id: string;
+  email: string;
+  full_name: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  is_verified: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Meal persistence types
+// ---------------------------------------------------------------------------
+
+export interface MealIngredientIn {
+  rivm_item_id: number;
+  primary_name: string;
+  amount: number;
+  unit: Unit;
+  position: number;
+}
+
+export interface MealIn {
+  name: string;
+  notes?: string;
+  ingredients: MealIngredientIn[];
+}
+
+export interface MealIngredientOut {
+  id: string;
+  rivm_item_id: number;
+  primary_name: string;
+  amount: number;
+  unit: Unit;
+  position: number;
+}
+
+export interface MealOut {
+  id: string;
+  name: string;
+  notes: string;
+  created_at: string;
+  ingredients: MealIngredientOut[];
+}
+
+export interface MealListItem {
+  id: string;
+  name: string;
+  notes: string;
+  created_at: string;
+  ingredient_count: number;
+}
+
+// ---------------------------------------------------------------------------
 // Local meal state
 // ---------------------------------------------------------------------------
 

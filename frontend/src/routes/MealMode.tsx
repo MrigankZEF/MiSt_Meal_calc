@@ -1,13 +1,16 @@
 /**
- * MealMode — P5 full implementation.
+ * MealMode — P5 + P6.
  *
  * Left panel:  live ingredient search + variant/qty/unit cards.
  * Right panel: empty state → results (metric chips, 3 chart views,
  *              nutrition strip, EAT-Lancet placeholder) + PNG export.
+ *
+ * P6 additions: "Save meal" section in results panel, backed by /api/meals.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { getRivmItem } from '../api/client';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getRivmItem, saveMeal } from '../api/client';
 import type { IngredientGroup, MealItem, Unit } from '../api/types';
 import BarsView from '../components/BarsView';
 import HeatmapView from '../components/HeatmapView';
@@ -16,6 +19,7 @@ import MealItemCard from '../components/MealItemCard';
 import MetricChips from '../components/MetricChips';
 import NutritionStrip from '../components/NutritionStrip';
 import RadarView from '../components/RadarView';
+import { useAuth } from '../context/AuthContext';
 
 type Tab = 'bars' | 'radar' | 'heatmap';
 
@@ -60,14 +64,42 @@ function ExportIcon() {
   );
 }
 
+function SaveIcon() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 13 13"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 2h7l2 2v7a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" />
+      <path d="M4 12V7h5v5" />
+      <path d="M4 2v3h4" />
+    </svg>
+  );
+}
+
 // ── component ─────────────────────────────────────────────────────────────
 
 export default function MealMode() {
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+
   const [items, setItems] = useState<MealItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('bars');
   const [exporting, setExporting] = useState(false);
+
+  // ── Save state ────────────────────────────────────────────────────────
+  const [mealName, setMealName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [savedOk, setSavedOk] = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -76,11 +108,16 @@ export default function MealMode() {
     if (items.length === 0) setShowResults(false);
   }, [items.length]);
 
-  // ── handlers ──────────────────────────────────────────────────────────
+  // Clear saved confirmation after 3 s
+  useEffect(() => {
+    if (!savedOk) return;
+    const t = setTimeout(() => setSavedOk(false), 3000);
+    return () => clearTimeout(t);
+  }, [savedOk]);
+
+  // ── Ingredient handlers ────────────────────────────────────────────────
 
   async function handleAddIngredient(group: IngredientGroup) {
-    // Prefer the retail-stage variant as default — it represents the
-    // impact up to point of purchase and avoids cooking-energy double-counting.
     const defaultVariant =
       group.variants.find(v => v.stage === 'retail') ?? group.variants[0];
     if (!defaultVariant) return;
@@ -133,11 +170,12 @@ export default function MealMode() {
     );
   }
 
+  // ── Export ────────────────────────────────────────────────────────────
+
   async function handleExport() {
     if (!resultsRef.current || exporting) return;
     setExporting(true);
 
-    // Hide the export button so it doesn't appear in the captured image
     const btn = resultsRef.current.querySelector<HTMLElement>('.btn-export');
     if (btn) btn.style.visibility = 'hidden';
 
@@ -161,16 +199,40 @@ export default function MealMode() {
     }
   }
 
+  // ── Save meal ─────────────────────────────────────────────────────────
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault();
+    if (!token || items.length === 0 || saving) return;
+    setSaving(true);
+    try {
+      await saveMeal(token, {
+        name: mealName.trim() || 'Untitled meal',
+        ingredients: items.map((item, idx) => ({
+          rivm_item_id: item.rivm_item_id,
+          primary_name: item.primary_name,
+          amount: item.amount,
+          unit: item.unit,
+          position: idx,
+        })),
+      });
+      setSavedOk(true);
+      setMealName('');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // ── render ────────────────────────────────────────────────────────────
 
   return (
     <div className="mode-layout">
       {/* ── Left panel ─────────────────────────────────────────────── */}
       <aside className="mode-left">
-        {/* Debounced live search */}
         <IngredientSearch onSelect={handleAddIngredient} />
 
-        {/* Ingredient card list */}
         <div className="panel-items">
           {items.length === 0 ? (
             <p className="panel-items-hint">
@@ -190,8 +252,6 @@ export default function MealMode() {
               />
             ))
           )}
-
-          {/* Spinner while a new item is loading */}
           {adding && items.length > 0 && (
             <p className="panel-items-hint" style={{ padding: '8px 0' }}>
               Adding ingredient…
@@ -199,7 +259,6 @@ export default function MealMode() {
           )}
         </div>
 
-        {/* Calculate button */}
         <div className="panel-action">
           <button
             className="btn-primary"
@@ -214,11 +273,8 @@ export default function MealMode() {
       {/* ── Right panel ────────────────────────────────────────────── */}
       <main className="mode-right">
         {!showResults || items.length === 0 ? (
-          /* Empty state */
           <div className="empty-state">
-            <div className="empty-icon">
-              <BarChartIcon />
-            </div>
+            <div className="empty-icon"><BarChartIcon /></div>
             <h2 className="empty-title">Your results will appear here</h2>
             <p className="empty-desc">
               Add ingredients on the left, then click{' '}
@@ -227,7 +283,6 @@ export default function MealMode() {
             </p>
           </div>
         ) : (
-          /* Results panel */
           <div className="results-panel" ref={resultsRef}>
             {/* Header row */}
             <div className="results-header">
@@ -263,7 +318,6 @@ export default function MealMode() {
               ))}
             </div>
 
-            {/* Chart area */}
             <div className="chart-area" role="tabpanel">
               {activeTab === 'bars'    && <BarsView    items={items} />}
               {activeTab === 'radar'   && <RadarView   items={items} />}
@@ -283,6 +337,45 @@ export default function MealMode() {
                 <div className="score-placeholder-label">EAT-Lancet score</div>
                 <div className="score-placeholder-soon">Coming in P8</div>
               </div>
+            </div>
+
+            {/* ── Save meal ──────────────────────────────────────────── */}
+            <div className="save-meal-section">
+              {!user ? (
+                <div className="save-meal-guest">
+                  <span className="save-meal-guest-text">Sign in to save meals to your history</span>
+                  <button
+                    className="btn-outline save-meal-signin"
+                    onClick={() => navigate('/login')}
+                  >
+                    Sign in →
+                  </button>
+                </div>
+              ) : savedOk ? (
+                <div className="save-meal-success">
+                  ✓ Meal saved to your history
+                </div>
+              ) : (
+                <form className="save-meal-form" onSubmit={handleSave}>
+                  <input
+                    className="save-meal-input"
+                    type="text"
+                    value={mealName}
+                    onChange={e => setMealName(e.target.value)}
+                    placeholder="Name this meal… (optional)"
+                    maxLength={300}
+                    disabled={saving}
+                  />
+                  <button
+                    className="btn-save-meal"
+                    type="submit"
+                    disabled={saving}
+                  >
+                    <SaveIcon />
+                    {saving ? 'Saving…' : 'Save meal'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         )}
