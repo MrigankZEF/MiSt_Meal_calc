@@ -164,6 +164,49 @@ export interface MealItem {
   nutrition: NevoNutritionOut | null;
 }
 
+// ---------------------------------------------------------------------------
+// Procurement persistence types
+// ---------------------------------------------------------------------------
+
+export interface ProcurementItemIn {
+  rivm_item_id: number;
+  primary_name: string;
+  amount: number;
+  unit: Unit;
+  position: number;
+}
+
+export interface ProcurementIn {
+  name: string;
+  notes?: string;
+  items: ProcurementItemIn[];
+}
+
+export interface ProcurementItemOut {
+  id: string;
+  rivm_item_id: number;
+  primary_name: string;
+  amount: number;
+  unit: Unit;
+  position: number;
+}
+
+export interface ProcurementOut {
+  id: string;
+  name: string;
+  notes: string;
+  created_at: string;
+  items: ProcurementItemOut[];
+}
+
+export interface ProcurementListItem {
+  id: string;
+  name: string;
+  notes: string;
+  created_at: string;
+  item_count: number;
+}
+
 /** The 6 RIVM environmental metric keys */
 export type MetricKey =
   | 'co2_kgco2eq'

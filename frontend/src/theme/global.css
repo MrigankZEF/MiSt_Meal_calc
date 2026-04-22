@@ -1266,7 +1266,7 @@ select.ingredient-variant {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .history-title {
@@ -1278,6 +1278,50 @@ select.ingredient-variant {
 .history-count {
   font-size: 13px;
   color: var(--hint);
+}
+
+/* Tab switcher (Meals / Procurement) */
+.history-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.history-tab {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 8px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.history-tab:hover {
+  color: var(--green-deep);
+}
+.history-tab.active {
+  color: var(--green-deep);
+  border-bottom-color: var(--green-mid);
+  font-weight: 600;
+}
+
+.history-tab-count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--green-pale);
+  color: var(--green-deep);
+  border-radius: 10px;
+  padding: 1px 6px;
+  line-height: 1.4;
 }
 
 .history-list {

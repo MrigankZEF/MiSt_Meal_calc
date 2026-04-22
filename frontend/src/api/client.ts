@@ -3,6 +3,9 @@ import type {
   MealIn,
   MealListItem,
   MealOut,
+  ProcurementIn,
+  ProcurementListItem,
+  ProcurementOut,
   RivmItemDetail,
   UserOut,
 } from './types';
@@ -130,6 +133,53 @@ export async function getMeal(token: string, id: string): Promise<MealOut> {
 
 export async function deleteMeal(token: string, id: string): Promise<void> {
   const res = await fetch(`${BASE}/api/meals/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  await assertOk(res);
+}
+
+// ── Procurement ────────────────────────────────────────────────────────────
+
+export async function saveProcurement(
+  token: string,
+  entry: ProcurementIn,
+): Promise<ProcurementOut> {
+  const res = await fetch(`${BASE}/api/procurement`, {
+    method: 'POST',
+    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  });
+  await assertOk(res);
+  return res.json() as Promise<ProcurementOut>;
+}
+
+export async function listProcurement(
+  token: string,
+): Promise<ProcurementListItem[]> {
+  const res = await fetch(`${BASE}/api/procurement`, {
+    headers: authHeaders(token),
+  });
+  await assertOk(res);
+  return res.json() as Promise<ProcurementListItem[]>;
+}
+
+export async function getProcurement(
+  token: string,
+  id: string,
+): Promise<ProcurementOut> {
+  const res = await fetch(`${BASE}/api/procurement/${id}`, {
+    headers: authHeaders(token),
+  });
+  await assertOk(res);
+  return res.json() as Promise<ProcurementOut>;
+}
+
+export async function deleteProcurement(
+  token: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/api/procurement/${id}`, {
     method: 'DELETE',
     headers: authHeaders(token),
   });

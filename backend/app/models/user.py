@@ -37,6 +37,10 @@ class User(SQLAlchemyBaseUserTableUUID, UserBase):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    procurement_entries: Mapped[list[ProcurementEntry]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 class Meal(UserBase):
@@ -88,3 +92,53 @@ class MealIngredient(UserBase):
     position: Mapped[int] = mapped_column(Integer, default=0)  # display ordering
 
     meal: Mapped[Meal] = relationship(back_populates="ingredients")
+
+
+class ProcurementEntry(UserBase):
+    """A saved procurement order / purchase list belonging to one user."""
+
+    __tablename__ = "procurement_entry"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        GUID,
+        ForeignKey("auth_user.id", ondelete="CASCADE"),
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(300))
+    notes: Mapped[str] = mapped_column(String(1000), server_default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    user: Mapped[User] = relationship(back_populates="procurement_entries")
+    items: Mapped[list[ProcurementItem]] = relationship(
+        back_populates="entry",
+        cascade="all, delete-orphan",
+        order_by="ProcurementItem.position",
+    )
+
+
+class ProcurementItem(UserBase):
+    """One line item in a saved procurement entry.
+
+    Always references a ``distribution``-stage RIVM item.  ``primary_name``
+    is stored as a snapshot so the history list renders without cross-DB joins.
+    """
+
+    __tablename__ = "procurement_item"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    entry_id: Mapped[uuid.UUID] = mapped_column(
+        GUID,
+        ForeignKey("procurement_entry.id", ondelete="CASCADE"),
+        index=True,
+    )
+    rivm_item_id: Mapped[int] = mapped_column(Integer, index=True)
+    primary_name: Mapped[str] = mapped_column(String(300))   # snapshot for display
+    amount: Mapped[float] = mapped_column(Float)
+    unit: Mapped[str] = mapped_column(String(10))             # g|kg|ml|L|piece
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+    entry: Mapped[ProcurementEntry] = relationship(back_populates="items")

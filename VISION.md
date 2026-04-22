@@ -482,7 +482,7 @@ Each phase leaves the app working and demoable. Stop at each boundary for Mrigan
 - [ ] **"Alternative" swap feature** — v1 suggests a lower-impact item from the same `productgroup`. Port as-is or redesign?
 - [ ] **PNG report design update** — reuse v1 canvas code verbatim, or redesign with the two new modes?
 - [ ] **Per-org branding** — down the line, do customers want their logo on exported reports?
-- [ ] **Consumption-stage UX — cooking double-count problem** *(parked, resolve in P7)* — see §10.1 below.
+- [ ] **Consumption-stage UX — cooking double-count problem** *(parked — resolve after reviewing RIVM methodology docs)* — see §10.1 below.
 
 ### 10.1 Consumption-stage variants & cooking energy — design decision needed
 
@@ -496,11 +496,13 @@ Each phase leaves the app working and demoable. Stop at each boundary for Mrigan
 
 **The problem.** When a caterer builds a meal with 5 cooked ingredients and selects `boiling` for each, the total cooking energy is summed 5×, as if each ingredient was boiled in a separate pot. In reality, one pot of boiling water heats everything.
 
+**Note (2026-04-22):** Procurement mode has no cooking stage — only `distribution` variants — so this issue doesn't apply there. For Meal mode, the fix should follow RIVM's own methodology: review the RIVM background documents to understand how they model cooking energy per ingredient, then implement the same approach. Only then decide between per-ingredient vs meal-level cooking widgets. **Do not guess at cooking factors — use RIVM numbers directly.**
+
 **Current status (P5).** Default variant is `retail` ("as bought") to give a clean, comparable baseline with no cooking overhead. Consumption variants are still selectable. Cooking variants show an amber warning; logistics-only consumption variants show a neutral note about home transport.
 
-**Three options for a proper fix (implement in P7):**
+**Three options for a proper fix (deferred until RIVM docs reviewed):**
 
-**Option A — Retail default + single meal-level cooking widget** *(recommended)*
+**Option A — Retail default + single meal-level cooking widget** *(recommended, pending doc review)*
 - Meal list shows only retail-stage ingredients.
 - Add a "Meal preparation" panel: select cooking method (none / boiling / pan frying / oven) + heat source (gas / induction / electric-NL-grid).
 - Compute cooking energy once for the whole meal; add as a single line item in the footprint.

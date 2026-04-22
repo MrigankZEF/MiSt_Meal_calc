@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import auth_backend, fastapi_users
 from app.api.ingredients import router as ingredients_router
 from app.api.meals import router as meals_router
+from app.api.procurement import router as procurement_router
 from app.config import settings
 from app.db.user_base import UserBase
 from app.db.user_session import user_engine
@@ -87,6 +88,7 @@ app.include_router(
 
 app.include_router(ingredients_router)
 app.include_router(meals_router)
+app.include_router(procurement_router)
 
 
 @app.get("/health")

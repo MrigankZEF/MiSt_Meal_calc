@@ -5,6 +5,8 @@ import { useDebounce } from '../hooks/useDebounce';
 
 interface Props {
   onSelect: (group: IngredientGroup) => void;
+  /** 'meal' searches retail+consumption; 'procurement' searches distribution only. Defaults to 'meal'. */
+  mode?: 'meal' | 'procurement';
 }
 
 function SearchIcon() {
@@ -23,7 +25,7 @@ function SearchIcon() {
   );
 }
 
-export default function IngredientSearch({ onSelect }: Props) {
+export default function IngredientSearch({ onSelect, mode = 'meal' }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<IngredientGroup[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ export default function IngredientSearch({ onSelect }: Props) {
     setLoading(true);
     setFetchError(null);
 
-    searchIngredients('meal', debouncedQuery.trim())
+    searchIngredients(mode, debouncedQuery.trim())
       .then(r => {
         if (cancelled) return;
         setResults(r.results);
@@ -103,7 +105,11 @@ export default function IngredientSearch({ onSelect }: Props) {
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Search ingredient… (e.g. chicken, aardappel)"
+          placeholder={
+            mode === 'procurement'
+              ? 'Search product… (e.g. chicken fillet, aardappel)'
+              : 'Search ingredient… (e.g. chicken, aardappel)'
+          }
           aria-label="Search ingredients"
           aria-autocomplete="list"
           aria-expanded={open}
