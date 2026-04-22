@@ -1340,6 +1340,28 @@ select.ingredient-variant {
   flex-shrink: 0;
 }
 
+/* "Open →" button on History cards */
+.btn-history-open {
+  background: var(--green-dark);
+  color: #fff;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.btn-history-open:hover {
+  background: var(--green-mid);
+}
+.btn-history-open:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Ghost / icon-only button */
 .btn-ghost {
   background: none;

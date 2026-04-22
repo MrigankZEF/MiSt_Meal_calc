@@ -9,7 +9,7 @@
  */
 
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getRivmItem, saveMeal } from '../api/client';
 import type { IngredientGroup, MealItem, Unit } from '../api/types';
 import BarsView from '../components/BarsView';
@@ -89,6 +89,7 @@ function SaveIcon() {
 export default function MealMode() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [items, setItems] = useState<MealItem[]>([]);
   const [adding, setAdding] = useState(false);
@@ -103,6 +104,21 @@ export default function MealMode() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // ── Load meal from History "Open →" ───────────────────────────────────
+  useEffect(() => {
+    const state = location.state as
+      | { loadedItems?: MealItem[]; loadedMealName?: string }
+      | null;
+    if (state?.loadedItems && state.loadedItems.length > 0) {
+      setItems(state.loadedItems);
+      setShowResults(true);
+      if (state.loadedMealName) setMealName(state.loadedMealName);
+      // Clear the state so a back-navigation doesn't re-trigger this
+      window.history.replaceState({}, '');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Hide results when all ingredients are removed
   useEffect(() => {
