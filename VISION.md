@@ -596,6 +596,41 @@ OpenAPI JSON at `/openapi.json`, Swagger UI at `/docs`.
 
 ## 13. Changelog
 
+- **2026-04-23 · Claude (CLI) · Bug fixes — zero totals, sort, custom date range**
+  - **Root cause fixed**: `list_meals` and `list_procurement` were manually constructing list-item schemas without passing the totals fields — they silently defaulted to `null` (rendered as `0` in dashboard; sort-by-metric had no effect because all values were equal-null).
+  - **Fix**: all 6 totals (`total_co2_kg`, `total_water_m3`, `total_land_m2a`, `total_so2_kg`, `total_p_kg`, `total_n_kg`) now explicitly passed in both list endpoint constructors.
+  - **`compute_totals_async`**: replaced synchronous `compute_totals(ref_session, ...)` call (cross-thread sync session in async route) with `asyncio.to_thread` wrapper that creates its own fresh session inside the worker thread. No more `ref_session` FastAPI dependency on the two create endpoints.
+  - **Meal sort expanded**: all 6 env metrics now available as sort options, grouped with `<optgroup>` (CO₂, Water, Land use, Acidification SO₂, FW Eutrophication P, Mar. Eutrophication N — each high/low direction). Sort uses `-Infinity` sentinel for null values so records without totals always sort to the bottom.
+  - **Procurement dashboard — custom date range**: "Custom" period pill added alongside 2W/1M/3M/1Y/All; when selected shows From/To `<input type="date">` inputs. Filtering is client-side over the already-fetched entries list.
+  - **Procurement dashboard — removed trend chart**: "CO₂-eq per order" proportional bars section removed as per user feedback.
+  - **VISION.md §10.1 updated**: cooking double-count note added clarifying that fix must follow RIVM methodology docs, not guesswork.
+
+- **2026-04-23 · Claude (CLI) · Procurement dashboard + meal sort (initial)**
+  - **Footprint service** (`app/services/footprint/compute.py`): `compute_totals(ref_session, items)` — converts amounts to kg (g/ml ÷1000, kg/L ×1, piece ×0.1), looks up `RivmItem` rows by ID, sums 6 env metrics. Mirrors frontend `toKg()`.
+  - **Totals stored at save time**: `Meal` and `ProcurementEntry` models gain 6 nullable `Float` columns (`total_co2_kg`, `total_water_m3`, `total_land_m2a`, `total_so2_kg`, `total_p_kg`, `total_n_kg`). Computed on every `POST /api/meals` and `POST /api/procurement`.
+  - **Procurement Dashboard** (`ProcurementDashboard.tsx`): period filter (2W/1M/3M/1Y/All/Custom), six aggregate metric cards (CO₂ highlighted), order list with per-order CO₂ badge.
+  - **History > Meals**: sort dropdown (newest/oldest + CO₂/water high-low — expanded to all 6 metrics in the bug-fix commit above).
+  - **History page refactored**: Meals and Procurement tabs; `ProcurementDashboard` extracted as a separate component.
+  - ⚠️ **Dev DB note**: new columns require deleting `data/user.db` once so `create_all()` recreates tables with all columns. Previously saved meals/orders will have `null` totals and appear at the bottom of metric sorts until re-saved.
+
+- **2026-04-23 · Claude (CLI) · P7 complete — Procurement mode**
+  - **Backend models**: `ProcurementEntry` (id, user_id, name, notes, created_at, 6 totals) + `ProcurementItem` (id, entry_id, rivm_item_id, primary_name, amount, unit, position). Both in `UserBase` / user DB.
+  - **`User`** gains `procurement_entries` relationship (cascade delete-orphan).
+  - **Schemas** (`app/schemas/procurement.py`): `ProcurementIn`, `ProcurementItemIn`, `ProcurementOut`, `ProcurementItemOut`, `ProcurementListItem`.
+  - **API** (`app/api/procurement.py`): `GET /api/procurement`, `POST /api/procurement`, `GET /api/procurement/{id}`, `DELETE /api/procurement/{id}`. All JWT-protected.
+  - **`IngredientSearch`** gains optional `mode` prop (default `'meal'`); procurement mode uses `mode=procurement` → distribution-only results, different placeholder text.
+  - **`ProcurementItemCard`**: simplified card (name + qty/unit + CO₂ hint, no variant picker — distribution items always have one variant). Default unit `kg`.
+  - **`ProcurementMode.tsx`**: full implementation mirroring MealMode — search, item list, Analyse button, results panel (MetricChips + 3 chart views + nutrition strip + save section). Handles `location.state?.loadedItems` on mount to restore analysis from History "Open →".
+  - **History tabs**: Meals / Procurement tab switcher with count badges. Open → reconstructs full `MealItem[]` and navigates to `/procurement` with router state.
+  - **Exit criteria met**: add distribution products → analyse → save order → History > Procurement shows it → Open → restores analysis.
+
+- **2026-04-22 · Claude (CLI) · P6 complete (History open/load) — load saved meals back into MealMode**
+  - **`History.tsx` rewritten**: `handleOpen()` fetches `getMeal()`, parallel-fetches all `getRivmItem()` details, reconstructs full `MealItem[]` (including `IngredientVariant` with all 6 env metrics and `nutrition`), navigates to `/meal` with `{ state: { loadedItems, loadedMealName } }`.
+  - **`MealMode.tsx`** updated: reads `location.state?.loadedItems` on mount via `useEffect([], [])`, sets items + `showResults(true)` + pre-fills meal name. Clears router state with `window.history.replaceState({}, '')` to prevent re-trigger on back-navigation.
+  - **`buildLabel()` helper** in History mirrors backend `variant_label()` so reconstructed variant labels are consistent.
+  - **`all_variants`** set to `[variant]` for loaded items (full list would require a re-search; acceptable limitation noted in code).
+  - **CSS**: `.btn-history-open` added (green filled button, matches design system).
+
 - **2026-04-22 · Claude (CLI) · P6 complete — auth + meal persistence**
   - **fastapi-users 15.x** wired up: JWT bearer transport, `BearerTransport` + `JWTStrategy` + `AuthenticationBackend`. Endpoints: `POST /auth/jwt/login`, `POST /auth/jwt/logout`, `POST /auth/register`, `GET /auth/users/me`, `PATCH /auth/users/me`.
   - **Postgres user DB** via SQLAlchemy async engine (`psycopg3` dialect). Separate `UserBase(DeclarativeBase)` to keep reference-DB (SQLite) and user-DB (Postgres) models strictly isolated.
