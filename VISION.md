@@ -1,8 +1,20 @@
 # MiSt — Vision & Build Plan (v2)
 
-> **Living document.** Every working session appends to the Changelog at the bottom and updates the relevant section above. Read this top-to-bottom on context loss.
+> **Living document.** Session rules are in `CLAUDE.md` (auto-loaded). Changelog lives in `CHANGELOG.md`. Read §0 first on context loss, then the relevant sections below.
 >
 > **Audience:** future-Claude (this CLI + VS Code), and Mrigank.
+
+---
+
+## 0. Current state
+
+| | |
+|---|---|
+| **Phase** | P7 complete. Next: **P8** — EAT-Lancet bucket tagging + Level 1 scoring. |
+| **Last session** | 2026-04-23 — bug fixes (zero totals, sort, custom date range), procurement dashboard, meal sort. |
+| **Active features** | Auth (JWT, fastapi-users), Meal mode (save/load), Procurement mode (distribution-only, save/load), History (Meals + Procurement tabs, sort by 6 env metrics, period filter + custom range), Procurement Dashboard (6 aggregate metric cards). |
+| **Parked** | Cooking double-count fix (§10.1 — needs RIVM docs review). Bar chart redesign (§10.2). Radar normalization (§10.3). |
+| **Dev note** | Dev uses SQLite `data/user.db`; prod uses Postgres. Delete `data/user.db` if user-DB model columns change. |
 
 ---
 
@@ -19,35 +31,10 @@ MiSt is a **one-shot sustainability tool for caterers and food-service operators
 
 ---
 
-## 2. V1 inventory (snapshot of the MVP on `main` before v2 work starts)
+## 2. V1 inventory (pre-v2 snapshot)
 
-One-file FastAPI app (`app.py`, ~1180 lines — routes, matching, scoring heuristics, and inline HTML/CSS/JS all in one place).
-
-**Data**
-- `rivm.db` — single SQLite table `consumption` from the *consumption* sheet of the RIVM environmental DB. 411 rows, 344 unique NEVO codes, cols: `name, nevo_code, co2_kgco2eq, so2_kg, p_kg, n_kg, land_m2a, water_m3`. No nulls in CO₂.
-- `data/ingredients.csv` — 10-row local catalogue, **piece-weight hints + synonym attachments only** (never overrides RIVM footprints).
-- `ingest_to_sqlite.py` — builds `rivm.db` from the RIVM Excel `tot-en-met-consumptie` sheet. Hard-coded WSL inbound path.
-
-**Backend (all in `app.py`)**
-- DataFrame loaded at boot; normalized search text + primary-name tiebreaker; token-stem matching via rapidfuzz; `PROCESSED_WORDS` penalty for overly-specific rows; boost for non-null CO₂.
-- Routes: `GET /ingredient`, `POST /meal`, `POST /export` (CSV), `POST /missing` (coverage), `GET /` (UI).
-- Unit conversion: `tools/metrics_engine.py` — g/kg/mg, ml/L at density 1, `piece` via piece-weight map (fallback 100 g).
-- `MOCK_SAFE` flag at `app.py:107` as an emergency canned-response mode (off).
-
-**Frontend (inline in `app.py:442-1176`)**
-- Eaternity-inspired theme. DM Serif Display + DM Sans. Deep-green / cream / amber palette.
-- Search → match cards → meal list with editable qty/unit. Three result views (Bars / Radar / Heatmap). Per-100 g toggle. Swap-to-lower-impact. CSV export. Client-side PNG report exporter (~200 lines of canvas drawing).
-
-**Known limits**
-1. Everything in one file.
-2. No user persistence — meals aren't saved.
-3. Matching brittle outside RIVM's Dutch-centric catalogue.
-4. Unit heuristics thin (no cooked↔raw; no density lookup).
-5. "Alternative" swap feature relies on a `productgroup` column that isn't preserved in the ingest → rarely fires.
-6. No real tests. `tests/playwright/test_toggle.spec.js` targets stale UI.
-7. `requirements.txt` pins future-ish versions (pandas 3.0.1, fastapi 0.135).
-
-**Preserved as `legacy_app.py` when v2 restructure lands.**
+One-file FastAPI app (`app.py`, ~1180 lines): inline HTML/CSS/JS, DataFrame-backed fuzzy search, single SQLite `consumption` table (411 rows, 6 env metrics), no user persistence.
+Preserved as `legacy/legacy_app.py`. Full detail in CHANGELOG.md entry "Vision created".
 
 ---
 
@@ -594,143 +581,4 @@ OpenAPI JSON at `/openapi.json`, Swagger UI at `/docs`.
 
 ---
 
-## 13. Changelog
-
-- **2026-04-23 · Claude (CLI) · Bug fixes — zero totals, sort, custom date range**
-  - **Root cause fixed**: `list_meals` and `list_procurement` were manually constructing list-item schemas without passing the totals fields — they silently defaulted to `null` (rendered as `0` in dashboard; sort-by-metric had no effect because all values were equal-null).
-  - **Fix**: all 6 totals (`total_co2_kg`, `total_water_m3`, `total_land_m2a`, `total_so2_kg`, `total_p_kg`, `total_n_kg`) now explicitly passed in both list endpoint constructors.
-  - **`compute_totals_async`**: replaced synchronous `compute_totals(ref_session, ...)` call (cross-thread sync session in async route) with `asyncio.to_thread` wrapper that creates its own fresh session inside the worker thread. No more `ref_session` FastAPI dependency on the two create endpoints.
-  - **Meal sort expanded**: all 6 env metrics now available as sort options, grouped with `<optgroup>` (CO₂, Water, Land use, Acidification SO₂, FW Eutrophication P, Mar. Eutrophication N — each high/low direction). Sort uses `-Infinity` sentinel for null values so records without totals always sort to the bottom.
-  - **Procurement dashboard — custom date range**: "Custom" period pill added alongside 2W/1M/3M/1Y/All; when selected shows From/To `<input type="date">` inputs. Filtering is client-side over the already-fetched entries list.
-  - **Procurement dashboard — removed trend chart**: "CO₂-eq per order" proportional bars section removed as per user feedback.
-  - **VISION.md §10.1 updated**: cooking double-count note added clarifying that fix must follow RIVM methodology docs, not guesswork.
-
-- **2026-04-23 · Claude (CLI) · Procurement dashboard + meal sort (initial)**
-  - **Footprint service** (`app/services/footprint/compute.py`): `compute_totals(ref_session, items)` — converts amounts to kg (g/ml ÷1000, kg/L ×1, piece ×0.1), looks up `RivmItem` rows by ID, sums 6 env metrics. Mirrors frontend `toKg()`.
-  - **Totals stored at save time**: `Meal` and `ProcurementEntry` models gain 6 nullable `Float` columns (`total_co2_kg`, `total_water_m3`, `total_land_m2a`, `total_so2_kg`, `total_p_kg`, `total_n_kg`). Computed on every `POST /api/meals` and `POST /api/procurement`.
-  - **Procurement Dashboard** (`ProcurementDashboard.tsx`): period filter (2W/1M/3M/1Y/All/Custom), six aggregate metric cards (CO₂ highlighted), order list with per-order CO₂ badge.
-  - **History > Meals**: sort dropdown (newest/oldest + CO₂/water high-low — expanded to all 6 metrics in the bug-fix commit above).
-  - **History page refactored**: Meals and Procurement tabs; `ProcurementDashboard` extracted as a separate component.
-  - ⚠️ **Dev DB note**: new columns require deleting `data/user.db` once so `create_all()` recreates tables with all columns. Previously saved meals/orders will have `null` totals and appear at the bottom of metric sorts until re-saved.
-
-- **2026-04-23 · Claude (CLI) · P7 complete — Procurement mode**
-  - **Backend models**: `ProcurementEntry` (id, user_id, name, notes, created_at, 6 totals) + `ProcurementItem` (id, entry_id, rivm_item_id, primary_name, amount, unit, position). Both in `UserBase` / user DB.
-  - **`User`** gains `procurement_entries` relationship (cascade delete-orphan).
-  - **Schemas** (`app/schemas/procurement.py`): `ProcurementIn`, `ProcurementItemIn`, `ProcurementOut`, `ProcurementItemOut`, `ProcurementListItem`.
-  - **API** (`app/api/procurement.py`): `GET /api/procurement`, `POST /api/procurement`, `GET /api/procurement/{id}`, `DELETE /api/procurement/{id}`. All JWT-protected.
-  - **`IngredientSearch`** gains optional `mode` prop (default `'meal'`); procurement mode uses `mode=procurement` → distribution-only results, different placeholder text.
-  - **`ProcurementItemCard`**: simplified card (name + qty/unit + CO₂ hint, no variant picker — distribution items always have one variant). Default unit `kg`.
-  - **`ProcurementMode.tsx`**: full implementation mirroring MealMode — search, item list, Analyse button, results panel (MetricChips + 3 chart views + nutrition strip + save section). Handles `location.state?.loadedItems` on mount to restore analysis from History "Open →".
-  - **History tabs**: Meals / Procurement tab switcher with count badges. Open → reconstructs full `MealItem[]` and navigates to `/procurement` with router state.
-  - **Exit criteria met**: add distribution products → analyse → save order → History > Procurement shows it → Open → restores analysis.
-
-- **2026-04-22 · Claude (CLI) · P6 complete (History open/load) — load saved meals back into MealMode**
-  - **`History.tsx` rewritten**: `handleOpen()` fetches `getMeal()`, parallel-fetches all `getRivmItem()` details, reconstructs full `MealItem[]` (including `IngredientVariant` with all 6 env metrics and `nutrition`), navigates to `/meal` with `{ state: { loadedItems, loadedMealName } }`.
-  - **`MealMode.tsx`** updated: reads `location.state?.loadedItems` on mount via `useEffect([], [])`, sets items + `showResults(true)` + pre-fills meal name. Clears router state with `window.history.replaceState({}, '')` to prevent re-trigger on back-navigation.
-  - **`buildLabel()` helper** in History mirrors backend `variant_label()` so reconstructed variant labels are consistent.
-  - **`all_variants`** set to `[variant]` for loaded items (full list would require a re-search; acceptable limitation noted in code).
-  - **CSS**: `.btn-history-open` added (green filled button, matches design system).
-
-- **2026-04-22 · Claude (CLI) · P6 complete — auth + meal persistence**
-  - **fastapi-users 15.x** wired up: JWT bearer transport, `BearerTransport` + `JWTStrategy` + `AuthenticationBackend`. Endpoints: `POST /auth/jwt/login`, `POST /auth/jwt/logout`, `POST /auth/register`, `GET /auth/users/me`, `PATCH /auth/users/me`.
-  - **Postgres user DB** via SQLAlchemy async engine (`psycopg3` dialect). Separate `UserBase(DeclarativeBase)` to keep reference-DB (SQLite) and user-DB (Postgres) models strictly isolated.
-  - **Models**: `User` (extends `SQLAlchemyBaseUserTableUUID`, table `auth_user`), `Meal`, `MealIngredient`. `auth_user` used instead of `user` to avoid PostgreSQL reserved word.
-  - **Startup**: `_init_user_tables()` runs `metadata.create_all()` on boot with up-to-10 retries (handles Docker startup ordering). Alembic scaffold (`alembic.ini`, `alembic/env.py`) added for future production migrations.
-  - **Meals API**: `GET /api/meals` (list, newest-first), `POST /api/meals` (create with inline ingredients), `GET /api/meals/{id}`, `DELETE /api/meals/{id}`. All endpoints require valid JWT.
-  - `MealIngredient` stores `primary_name` snapshot so history renders without cross-DB joins. `rivm_item_id` kept for future "reload meal" feature.
-  - **Frontend — AuthContext**: `useAuth()` hook; token persisted in `localStorage`; verifies stored token via `/auth/users/me` on app load; clears on 401.
-  - **Login page**: email + password form with login/register toggle (no separate /register route). On success navigates to `/meal`.
-  - **History page**: lists saved meals (name, date, ingredient count); delete with confirm dialog; "not logged in" and "empty" states.
-  - **MealMode save section**: appears at bottom of results panel. Guest → "Sign in to save" + link. Logged-in → name input + save button. Success flash (3 s).
-  - **Nav**: `nav-right` flex container with RIVM badge + user name + Sign out (logged-in) or Sign in button (guest).
-  - `docker-compose.yml` updated: Postgres `healthcheck` (`pg_isready`); backend `depends_on: db: condition: service_healthy`.
-  - `backend/.env.example` added for local dev without Docker.
-  - Tests: 2 assertions updated to reflect P5 label changes (`"supermarket"` → `"as bought · Ambient"`, `"distribution"` → `"distribution · Ambient"`). All 13 pass.
-  - **Exit criteria met**: register → log in → add ingredients → calculate → save meal → log out → log in → History shows meal.
-
-
-
-Append newest-first. Each entry: date, author, one-line summary, links to any new sections.
-
-- **2026-04-20 · Claude (CLI) · P4 complete — React frontend shell with routing and design system**
-  - Design source: `MiSt-standalone.html` (Claude Design export, ~1.4 MB bundled) read via targeted grep extraction. Extracted exact tokens, layout dimensions, typography, spacing, and interaction patterns.
-  - **Design decision — build a clean shell now:** Nav declares all future routes (Meal, Procurement, History, Login) so each new phase only adds a page component. Stub pages display a "Coming in PX" card rather than dead code. No pre-building of auth/history UI — those require the Postgres user DB which lands in P6.
-  - `frontend/src/theme/global.css` — full rewrite with all design-system classes: nav (fixed 56px, deep-green), landing (hero + two mode cards 340px), split mode layout (left 390px fixed, right flex-1), search input with icon, ingredient cards with variant pill + qty/unit inputs, empty-state with diagonal-stripe icon, metric chips, results tabs, nutrition strip, EAT-Lancet score placeholder, stub pages.
-  - `frontend/src/components/Nav.tsx` — fixed nav: back arrow (on non-landing routes, navigates home), MiSt serif logo, screen-tag pill (shows current mode name), RIVM amber badge.
-  - `frontend/src/routes/Landing.tsx` — hero section (badge, 52px serif heading, subtext), two mode cards with SVG icons (PlateIcon, BoxIcon), hover animations (translateY -2px, border-color, shadow), "Start →" CTA buttons routing to `/meal` and `/procurement`, footer tagline.
-  - `frontend/src/routes/MealMode.tsx` — full split layout shell: search input (with magnifier icon, focus state), empty ingredient list with hint text, disabled "Calculate meal footprint" button, empty-state right panel with bar chart icon + descriptive text. Ready to fill in P5.
-  - `frontend/src/routes/ProcurementMode.tsx` — same split layout with period label bar (auto-calculates current ISO week), product search, empty list, disabled "Analyse procurement" button, basket-icon empty state. Ready for P7.
-  - `frontend/src/routes/History.tsx` + `Login.tsx` — stub cards with phase labels.
-  - `frontend/src/App.tsx` — `BrowserRouter` + `Routes` declaring `/`, `/meal`, `/procurement`, `/history`, `/login`. Nav rendered outside `<Routes>` so it's always visible.
-  - TypeScript clean (`npm run typecheck` 0 errors). Vite boots in 203ms.
-  - **Exit criteria met** (VISION §9 P4: React scaffold in place, theme tokens applied, landing with two mode buttons, clicking into Meal mode renders empty search UI). All future phases add to existing route files — no restructuring needed.
-
-- **2026-04-20 · Claude (CLI) · Scoring fix + P2 complete — tiered ranking, NEVO nutrition ingest**
-
-  **Search scoring — rebuilt per user feedback that "potato" was surfacing `Crisps potato` and `Sweet potato starch` above plain potato, and Dutch queries saturated the fuzzy tier:**
-  - Rewrote `services/matching/search.py::_score_group` as a tiered ladder restored from v1: **exact string → 120**, **all query stems ⊆ candidate stems → 100 − length penalty − modifier penalty**, **partial stem overlap → 65 + 8·|overlap| − penalties**, **fuzzy fallback (token_set_ratio, then WRatio across primary+NL+EN names)**. Scores each of `primary_name`, `nevo_name_en`, `nevo_naam_nl` separately and takes the max — this is how Dutch `aardappel` now resolves via NL name.
-  - **Bug fix:** v1's `PROCESSED_WORDS` blocklist contained plural forms (`crisps`, `nuggets`, `flakes`) but I was stemming candidate tokens to singular before checking membership — penalty never fired. Pre-stem the blocklist at module init. Also added `ketchup`, removed prep-method-masquerading entries (`mashed`, `pre-fried`, `prepared`).
-  - **New tiebreaker:** `primary_leads` (True iff the primary name's first word stem is in the query stems). RIVM names foods head-noun-first, so this cleanly demotes oddities like `Eggs chicken` for query `chicken` without touching score tiers. Sort order: `score desc → primary_leads → shorter primary_name`.
-  - **v1 features preserved (not rebuilt):** `_stem` suffix stripper (ies/es/s), `PROCESSED_WORDS` concept, prefer-generic-over-specific tiebreak, normalize→ASCII→lowercase→space-only.
-  - `backend/scripts/validate_search.py` — debug harness; runs potato/tomato/chicken/onion/oil/cheese/aardappel across both modes against the live `reference.db` and prints top-5 with scores. Ran it; results look sane: plain `Tomato` exact → 120, `Tomato sauce` → 69, `Potato starch` demoted to 73, `Chicken fillet` ranks above `Eggs chicken` on `primary_leads`.
-
-  **P2 — NEVO nutrition ingest (same database as RIVM):**
-  - Confirmed VISION §4.1 design: one SQLite file, `data/reference.db`, holding both `rivm_item` (P1) and now `nevo_nutrition` (P2). User data → separate Postgres at P6.
-  - `backend/app/models/reference.py` — added `NevoNutrition` ORM model. PK `nevo_code`. Curated typed fields for kJ/kcal, all macros (protein + plant/animal split, fat + sat/mono/poly, carb/sugar/starch/fibre, alcohol), curated minerals (Na, Ca, Fe, Vit C, Vit D). **Lossless** `raw_nutrients: JSON` holds all 148 original columns verbatim.
-  - `backend/scripts/ingest_nevo.py` — reads `data/source/NEVO2025_v9.0.xlsx` sheet `NEVO2025` (header row 0), maps 20 curated columns via `CURATED_COLUMNS` dict, dumps every row to `raw_nutrients` as a JSON-safe dict (NaN → None, floats preserved, rest stringified). Drops+recreates **only** the `nevo_nutrition` table; `rivm_item` untouched. Safe to re-run.
-  - Ingest run: **2328 rows inserted**, 100% have kcal + protein_g, **331 of 344 distinct RIVM NEVO codes (96.2%) joinable to nutrition**. Exit criterion from VISION §9 P2 met.
-  - `backend/app/schemas/ingredient.py` — added `NevoNutritionOut` (all curated fields + `raw_nutrients: dict[str, Any] | None`). `RivmItemDetail` now carries optional `nutrition: NevoNutritionOut | None`.
-  - `backend/app/api/ingredients.py::get_rivm_item` — after loading `RivmItem`, looks up `NevoNutrition` by `nevo_code` and attaches. Returns `nutrition: null` when no match (expected for the 3.8% of RIVM rows without nutrition coverage, and for any row where `nevo_code is None`).
-  - Tests extended: `conftest.py` seeds a `NevoNutrition` row for nevo_code=200 (Potato) but not 100 (Sweet potatoes). `test_ingredients.py` adds `test_detail_includes_nutrition_when_nevo_matched` (asserts english_name, kcal, protein_g, and lossless `raw_nutrients`) and `test_detail_nutrition_null_when_no_nevo_match`. **All 13 tests pass.**
-  - Smoke-tested live: `/api/rivm_item/531` (retail Tomato, nevo=2735) returns `english_name='Tomato av boiled', kcal=23.0, protein_g=0.7 (plant 0.7, animal 0.0), fat_g=0.7 (sat 0.1), carb_g=2.9, fibre_g=1.3, sodium_mg=2.0, vitamin_c_mg=14.0, raw_nutrients=148 cols`.
-
-  **Exit criteria met** — scoring demonstrates plain foods beat processed variants across 7 query axes in both modes; nutrition lookup works for any NEVO code joinable between the two tables.
-
-- **2026-04-19 · Claude (CLI) · P3 complete — ingredient search API with grouped variants**
-  - `backend/app/schemas/ingredient.py` — Pydantic v2 response models: `IngredientVariant`, `IngredientGroup`, `IngredientSearchResponse`, `RivmItemDetail`. All ORM-attribute-compatible via `model_config = ConfigDict(from_attributes=True)`.
-  - `backend/app/services/matching/search.py` — `search_ingredients(session, mode, query, limit)` returns a list of `ScoredGroup`. Normalises query (lowercase, strip diacritics, punctuation → space), filters `rivm_item` by mode-specific stages (`meal` → retail+consumption, `procurement` → distribution), groups by NEVO code (falling back to lowercased `primary_name` when NEVO is null), scores each group with `rapidfuzz.WRatio` against `primary_name + nevo_name_en + nevo_naam_nl`, drops results below `MIN_SCORE=40`, sorts score desc then shorter primary_name asc. `variant_label(row)` emits `distribution` / `supermarket` / `<prep_method>` / `unspecified`. Variants within a group sorted retail-before-consumption then by prep method.
-  - `backend/app/api/ingredients.py` — `GET /api/ingredients?mode=&q=&limit=` and `GET /api/rivm_item/{id}`. Uses `get_reference_session` dep. Query validation via FastAPI `Query(..., pattern=...)` and `min_length=1` (empty query → 422, unknown mode → 422).
-  - `backend/app/main.py` — includes `ingredients_router`. OpenAPI auto-generated at `/openapi.json` / `/docs`.
-  - **Matching simplification vs v1:** v1's `PROCESSED_WORDS` penalty and CO₂-coverage boost existed to suppress noisy variant rows inside a single flat result list. v2 surfaces variants *explicitly* (grouped-variant picker), so the retrieval layer only has to find the right *group* — simpler `WRatio` over primary+NEVO names is enough. If retrieval quality slips in practice we can reintroduce heuristics per-phase.
-  - **Tests:** `backend/tests/conftest.py` spins up an in-memory SQLite with `StaticPool + check_same_thread=False` (required so FastAPI's per-request session sees the same DB as the setup code), seeds 7 RivmItem rows across all 3 stages, overrides `get_reference_session`. `backend/tests/test_ingredients.py` covers meal-mode grouping (retail+2×consumption under one NEVO), procurement-mode single-variant shape, ranking, query/mode validation (422), detail endpoint, 404. 8 tests, all green (`.venv/bin/python -m pytest -q`).
-  - **Smoke-tested against committed `reference.db`:** `mode=meal q='sweet potato'` → top group `Sweet potatoes nevo=2112 score=90` with variants `[supermarket, boiling, pan frying]`. `mode=procurement q='chicken'` → top two groups `Chicken fillet`, `Chicken, w skin`, each with a single `distribution` variant.
-  - **Exit criteria met** (VISION §9 P3: modular backend, `/api/ingredients` with grouped variants, OpenAPI auto-generated). Note: legacy `/meal`, `/export`, `/missing` endpoints NOT yet ported — those flows land in P5 when the new React UI is wired up; `legacy_app.py` remains runnable in parallel until then.
-
-- **2026-04-19 · Claude (CLI) · P1 complete — RIVM ingestion (all 3 stages)**
-  - `backend/app/db/base.py` — shared `DeclarativeBase` for reference-DB models.
-  - `backend/app/db/reference_session.py` — `reference_engine` + `ReferenceSession` factory + `get_reference_session()` FastAPI dep.
-  - `backend/app/models/reference.py` — `RivmItem` ORM (stage, nevo_code, parsed fields primary_name/prep_method/packaging/conditions, raw_name, NL+EN NEVO labels, all 6 env metrics; indexes on stage/nevo_code/primary_name).
-  - `backend/app/config.py` — switched `DEFAULT_REFERENCE_DB` to absolute path (`Path(__file__).resolve().parents[1] / ../data/reference.db`) so ingest + app + Docker agree regardless of CWD.
-  - `backend/scripts/ingest_rivm.py` — reads all three stage sheets from `data/source/Database milieubelasting*.xlsx`, drops+recreates `data/reference.db`, parses pipe-delimited names per stage (distribution → `prep_method=None`; retail → `prep_method='supermarket'`; consumption → lowercased method word), preserves `raw_name` verbatim, tolerates missing NEVO codes, prints per-stage verification counts.
-  - Ran ingest via WSL-side Python (`wsl -d Ubuntu -- bash -lc ".venv/bin/python scripts/ingest_rivm.py"`). Windows-native Python against `\\wsl$\Ubuntu\...\data\reference.db` fails with SQLite "database is locked" on UNC paths — must run ingestion inside WSL.
-  - Verification: `distribution rows=376 unique_nevo=330 with_co2=376 · retail rows=376 unique_nevo=330 with_co2=376 · consumption rows=411 unique_nevo=344 with_co2=411`. Spot-checks confirm clean parsed fields (retail rows all `supermarket`; distribution all null; consumption varies over boiling/pan frying/deep frying/microwave/chilled at consumer/no preparation/dilution/freezing at consumer/water cooker + a handful with null).
-  - **Exit criteria met** (VISION §9 P1: counts 376/376/411, all 6 metrics preserved, raw + parsed names both stored). Legacy app untouched in `legacy/` and still boots against `legacy/rivm.db`.
-
-- **2026-04-19 · Claude (CLI) · P0 complete — repo restructure**
-  - v1 files moved to `legacy/` (legacy_app.py, legacy_ingest.py, mock_server.py, inspect_spreadsheet.py, rivm.db, Procfile, requirements.txt, tools/, tests/playwright/, verify/, data/ingredients.csv). Legacy app still runs self-contained from `legacy/`.
-  - Source xlsx files (RIVM env + NEVO2025) moved to `data/source/` (gitignored).
-  - `backend/` scaffold: pyproject.toml (fastapi, sqlalchemy, alembic, psycopg, pandas, rapidfuzz, openpyxl), Dockerfile, minimal FastAPI app exposing `GET /health`, config via pydantic-settings, empty package tree for api/services/models/schemas/db.
-  - `frontend/` scaffold: Vite + React 18 + TS, theme tokens + global.css lifted from v1 (cream bg, deep green, DM Serif + DM Sans), landing stub `App.tsx`.
-  - Root: `docker-compose.yml` (postgres + backend + frontend), `railway.json` (Dockerfile deploy), `.gitignore` rewritten, `README.md` rewritten with quickstart.
-  - Smoke tests: Python AST-parses clean across `backend/app/` and `backend/tests/`; JSON files valid. Not yet booted — user to verify with `docker compose up` or local uvicorn+vite.
-  - Known quirk: top-level `node_modules/` directory from v1 could not be removed from WSL (Windows file lock). Gitignored, harmless, will vanish if deleted externally.
-  - **Exit criteria met.** Backend and frontend scaffolds exist, v1 preserved, deploy configs ready.
-
-- **2026-04-22 · Claude (CLI) · P5 complete — frontend connected to backend**
-  - `src/api/types.ts` — TypeScript interfaces mirroring all backend Pydantic schemas; local `MealItem`, `Unit`, `MetricKey` types.
-  - `src/api/client.ts` — `searchIngredients()` + `getRivmItem()` using relative base URL (blank) so Vite's `/api` proxy forwards requests to the backend inside WSL2.
-  - `src/hooks/useDebounce.ts` — 280 ms debounce hook.
-  - `src/utils/units.ts` — `toKg()` (RIVM: per kg) + `portions100g()` (NEVO: per 100 g).
-  - `src/components/IngredientSearch.tsx` — live debounced search dropdown with loading/error/no-results states; NEVO English name shown as subtitle to distinguish same-name groups (e.g. "Tomato av raw" vs "Tomato av boiled"); error state surfaces network failures visibly.
-  - `src/components/MealItemCard.tsx` — variant picker (select when >1), qty+unit inputs; CO₂ hint label corrected to `/ kg`; consumption-stage variants show amber cooking warning (only for actual cooking methods) or a grey logistics note (no preparation / chilled / frozen).
-  - `src/components/MetricChips.tsx`, `BarsView.tsx`, `HeatmapView.tsx` — **unit bug fixed**: all RIVM calculations now use `toKg()` (data is per kg), not `portions100g()`. Previous code overcounted by 10×.
-  - `src/components/RadarView.tsx` — **normalization fixed**: each axis independently normalised against a p95 reference value calibrated to the actual RIVM DB (`co2=14 kg/kg`, `so2=0.053`, `p=0.0053`, `n=0.017`, `land=12 m²a`, `water=0.35 m³`). Previously collapsed to a single spike because a global max was applied across all 6 different-scale metrics.
-  - `src/components/NutritionStrip.tsx` — kcal / protein / fat / carbs / fibre totals from NEVO 2025; uses `portions100g()` (NEVO is per 100 g — correct).
-  - `src/routes/MealMode.tsx` — full implementation: live state, retail-first default on add, Calculate button, 3-tab chart view, PNG export (html2canvas, lazy-loaded). Export button hidden before capture and restored after so it doesn't appear in the image.
-  - `backend/app/services/matching/search.py` — `variant_label()` rewritten: `"supermarket"` → `"as bought"`; packaging appended with `·` separator when packaging ≠ "Not packed" (fixes spinach showing 3× duplicate labels for Food can vs Glass jar variants).
-  - `src/vite-env.d.ts` — added to expose `import.meta.env` types to TypeScript.
-  - **Proxy fix**: Vite proxy (`/api → http://localhost:8000`) was already in `vite.config.ts` but `client.ts` was using a hard-coded full URL, bypassing the proxy and hitting a cross-origin network error from Windows browser → WSL2 backend. Fixed by defaulting BASE to `''` (relative).
-  - **Open design decision documented in §10.1**: cooking double-count problem parked; Option A (retail-only + single meal-level cooking widget) recommended for P7.
-
-- **2026-04-19 · Claude (CLI) · Vision created**
-  Captured v1 inventory (§2), confirmed data sources (§3 — RIVM 3 stages 376/376/411, NEVO 2328×148), laid out v2 schema (§4), grouped-variant UX (§5), EAT-Lancet scoring from guide (§6), chose React/Vite/TS + FastAPI + SQLite-reference + Postgres-Railway (§7.1), preserved v1 design tokens (§8), phased delivery P0–P10 (§9). Decisions: auth deferred to P6; procurement MVP = name + quantity only; EAT-Lancet bucketing built from scratch; single multi-tenant app.
+*Full history in `CHANGELOG.md`.*
