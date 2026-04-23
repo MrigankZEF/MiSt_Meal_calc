@@ -27,9 +27,18 @@ import type {
 import ProcurementDashboard from '../components/ProcurementDashboard';
 import { useAuth } from '../context/AuthContext';
 
+// Period type is owned by ProcurementDashboard; re-declare locally for the state
+type Period = '2w' | '1m' | '3m' | '1y' | 'all' | 'custom';
+
 type HistoryTab = 'meals' | 'procurement';
-type MealSort  = 'newest' | 'oldest' | 'co2_desc' | 'co2_asc' | 'water_desc' | 'water_asc';
-type Period    = '2w' | '1m' | '3m' | '1y' | 'all';
+type MealSort  =
+  | 'newest' | 'oldest'
+  | 'co2_desc'   | 'co2_asc'
+  | 'water_desc' | 'water_asc'
+  | 'land_desc'  | 'land_asc'
+  | 'so2_desc'   | 'so2_asc'
+  | 'p_desc'     | 'p_asc'
+  | 'n_desc'     | 'n_asc';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -66,17 +75,44 @@ async function reconstructItems(
   });
 }
 
-function sortMeals(meals: MealListItem[], sort: MealSort): MealListItem[] {
-  const copy = [...meals];
-  switch (sort) {
-    case 'newest':    return copy.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    case 'oldest':    return copy.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    case 'co2_desc':  return copy.sort((a, b) => (b.total_co2_kg ?? -1) - (a.total_co2_kg ?? -1));
-    case 'co2_asc':   return copy.sort((a, b) => (a.total_co2_kg ?? Infinity) - (b.total_co2_kg ?? Infinity));
-    case 'water_desc':return copy.sort((a, b) => (b.total_water_m3 ?? -1) - (a.total_water_m3 ?? -1));
-    case 'water_asc': return copy.sort((a, b) => (a.total_water_m3 ?? Infinity) - (b.total_water_m3 ?? Infinity));
-    default:          return copy;
+type SortField = 'date' | 'co2' | 'water' | 'land' | 'so2' | 'p' | 'n';
+
+const MEAL_SORT_FIELD: Record<MealSort, { field: SortField; dir: 'asc' | 'desc' }> = {
+  newest:     { field: 'date',  dir: 'desc' },
+  oldest:     { field: 'date',  dir: 'asc'  },
+  co2_desc:   { field: 'co2',   dir: 'desc' },
+  co2_asc:    { field: 'co2',   dir: 'asc'  },
+  water_desc: { field: 'water', dir: 'desc' },
+  water_asc:  { field: 'water', dir: 'asc'  },
+  land_desc:  { field: 'land',  dir: 'desc' },
+  land_asc:   { field: 'land',  dir: 'asc'  },
+  so2_desc:   { field: 'so2',   dir: 'desc' },
+  so2_asc:    { field: 'so2',   dir: 'asc'  },
+  p_desc:     { field: 'p',     dir: 'desc' },
+  p_asc:      { field: 'p',     dir: 'asc'  },
+  n_desc:     { field: 'n',     dir: 'desc' },
+  n_asc:      { field: 'n',     dir: 'asc'  },
+};
+
+function getMealValue(m: MealListItem, field: SortField): number {
+  switch (field) {
+    case 'date':  return new Date(m.created_at).getTime();
+    case 'co2':   return m.total_co2_kg   ?? -Infinity;
+    case 'water': return m.total_water_m3 ?? -Infinity;
+    case 'land':  return m.total_land_m2a ?? -Infinity;
+    case 'so2':   return m.total_so2_kg   ?? -Infinity;
+    case 'p':     return m.total_p_kg     ?? -Infinity;
+    case 'n':     return m.total_n_kg     ?? -Infinity;
   }
+}
+
+function sortMeals(meals: MealListItem[], sort: MealSort): MealListItem[] {
+  const { field, dir } = MEAL_SORT_FIELD[sort];
+  return [...meals].sort((a, b) => {
+    const va = getMealValue(a, field);
+    const vb = getMealValue(b, field);
+    return dir === 'desc' ? vb - va : va - vb;
+  });
 }
 
 export default function History() {
@@ -226,12 +262,34 @@ export default function History() {
                   value={mealSort}
                   onChange={e => setMealSort(e.target.value as MealSort)}
                 >
-                  <option value="newest">Newest first</option>
-                  <option value="oldest">Oldest first</option>
-                  <option value="co2_desc">Most CO₂</option>
-                  <option value="co2_asc">Least CO₂</option>
-                  <option value="water_desc">Most water</option>
-                  <option value="water_asc">Least water</option>
+                  <optgroup label="Date">
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                  </optgroup>
+                  <optgroup label="CO₂-eq (kg)">
+                    <option value="co2_desc">Highest CO₂</option>
+                    <option value="co2_asc">Lowest CO₂</option>
+                  </optgroup>
+                  <optgroup label="Water (m³)">
+                    <option value="water_desc">Most water</option>
+                    <option value="water_asc">Least water</option>
+                  </optgroup>
+                  <optgroup label="Land use (m²·a)">
+                    <option value="land_desc">Most land</option>
+                    <option value="land_asc">Least land</option>
+                  </optgroup>
+                  <optgroup label="Acidification (SO₂-eq)">
+                    <option value="so2_desc">Highest SO₂</option>
+                    <option value="so2_asc">Lowest SO₂</option>
+                  </optgroup>
+                  <optgroup label="FW Eutrophication (P-eq)">
+                    <option value="p_desc">Highest P</option>
+                    <option value="p_asc">Lowest P</option>
+                  </optgroup>
+                  <optgroup label="Mar. Eutrophication (N-eq)">
+                    <option value="n_desc">Highest N</option>
+                    <option value="n_asc">Lowest N</option>
+                  </optgroup>
                 </select>
               </div>
 

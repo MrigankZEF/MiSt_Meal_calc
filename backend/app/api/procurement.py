@@ -8,14 +8,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import selectinload
 
 from app.api.auth import current_active_user
-from app.db.reference_session import get_reference_session
 from app.db.user_session import get_async_user_session
 from app.models.user import ProcurementEntry, ProcurementItem, User
 from app.schemas.procurement import ProcurementIn, ProcurementListItem, ProcurementOut
-from app.services.footprint.compute import compute_totals
+from app.services.footprint.compute import compute_totals_async
 
 router = APIRouter(prefix="/api/procurement", tags=["procurement"])
 
@@ -40,6 +39,12 @@ async def list_procurement(
             notes=e.notes,
             created_at=e.created_at,
             item_count=len(e.items),
+            total_co2_kg=e.total_co2_kg,
+            total_water_m3=e.total_water_m3,
+            total_land_m2a=e.total_land_m2a,
+            total_so2_kg=e.total_so2_kg,
+            total_p_kg=e.total_p_kg,
+            total_n_kg=e.total_n_kg,
         )
         for e in entries
     ]
@@ -50,11 +55,9 @@ async def create_procurement(
     body: ProcurementIn,
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_user_session),
-    ref_session: Session = Depends(get_reference_session),
 ) -> ProcurementEntry:
     """Save a procurement entry."""
-    totals = compute_totals(
-        ref_session,
+    totals = await compute_totals_async(
         [(item.rivm_item_id, item.amount, item.unit) for item in body.items],
     )
     entry = ProcurementEntry(

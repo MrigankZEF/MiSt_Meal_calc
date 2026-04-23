@@ -10,6 +10,8 @@ pool so this is safe to inject into async route handlers.
 
 from __future__ import annotations
 
+import asyncio
+
 from sqlalchemy.orm import Session
 
 from app.models.reference import RivmItem
@@ -66,3 +68,21 @@ def compute_totals(
         totals["p_kg"]     += kg * (r.p_kg        or 0.0)
         totals["n_kg"]     += kg * (r.n_kg        or 0.0)
     return totals
+
+
+async def compute_totals_async(
+    items: list[tuple[int, float, str]],
+) -> dict[str, float]:
+    """Async-safe wrapper: runs compute_totals in a thread pool with its own session.
+
+    Avoids any cross-thread SQLAlchemy session issues when called from async
+    route handlers.  A fresh Session is created inside the worker thread so
+    the connection is always made from the thread that uses it.
+    """
+    from app.db.reference_session import ReferenceSession   # local import avoids circulars
+
+    def _run() -> dict[str, float]:
+        with ReferenceSession() as session:
+            return compute_totals(session, items)
+
+    return await asyncio.to_thread(_run)

@@ -1614,6 +1614,35 @@ select.ingredient-variant {
   white-space: nowrap;
 }
 
+/* Custom date range */
+.dash-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.dash-custom-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dash-date-input {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 5px 10px;
+  cursor: pointer;
+  outline: none;
+}
+.dash-date-input:focus {
+  border-color: var(--green-mid);
+}
+
 .dash-order-list-label {
   font-size: 12px;
   font-weight: 600;

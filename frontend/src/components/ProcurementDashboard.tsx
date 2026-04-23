@@ -1,18 +1,18 @@
 /**
  * Procurement Dashboard — shown in History > Procurement tab.
  *
- * Aggregate view across all saved procurement entries:
- * - Period selector (2W / 1M / 3M / 1Y / All)
+ * Aggregate view across saved procurement entries:
+ * - Period selector (2W / 1M / 3M / 1Y / All / Custom date range)
  * - Summed metric cards (CO₂, water, land, acidification, eutrophication ×2)
- * - Per-order CO₂ trend (CSS proportional bars, newest → oldest)
- * - Order list with per-order CO₂
+ * - Order list with per-order CO₂ and open/delete actions
  */
 
+import { useState } from 'react';
 import type { ProcurementListItem } from '../api/types';
 
-type Period = '2w' | '1m' | '3m' | '1y' | 'all';
+type Period = '2w' | '1m' | '3m' | '1y' | 'all' | 'custom';
 
-const PERIODS: { key: Period; label: string; days: number }[] = [
+const QUICK_PERIODS: { key: Period; label: string; days: number }[] = [
   { key: '2w',  label: '2 Weeks',  days: 14  },
   { key: '1m',  label: '1 Month',  days: 30  },
   { key: '3m',  label: '3 Months', days: 90  },
@@ -20,20 +20,30 @@ const PERIODS: { key: Period; label: string; days: number }[] = [
   { key: 'all', label: 'All time', days: Infinity },
 ];
 
-function filterByPeriod(entries: ProcurementListItem[], period: Period): ProcurementListItem[] {
+function filterByPeriod(
+  entries: ProcurementListItem[],
+  period: Period,
+  customFrom: string,
+  customTo: string,
+): ProcurementListItem[] {
+  if (period === 'custom') {
+    const from = customFrom ? new Date(customFrom).getTime() : 0;
+    // custom "to" is end-of-day
+    const to   = customTo   ? new Date(customTo).getTime() + 86400000 : Infinity;
+    return entries.filter(e => {
+      const t = new Date(e.created_at).getTime();
+      return t >= from && t <= to;
+    });
+  }
   if (period === 'all') return entries;
-  const days = PERIODS.find(p => p.key === period)!.days;
+  const days   = QUICK_PERIODS.find(p => p.key === period)!.days;
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   return entries.filter(e => new Date(e.created_at).getTime() >= cutoff);
 }
 
-function fmt(v: number | null | undefined, decimals: number): string {
-  return v != null ? v.toFixed(decimals) : '—';
-}
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('en-NL', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-NL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 interface MetricCardProps {
@@ -77,9 +87,12 @@ export default function ProcurementDashboard({
   deletingId,
   onGoToProcurement,
 }: Props) {
-  const filtered = filterByPeriod(entries, period);
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo,   setCustomTo]   = useState('');
 
-  // Aggregate totals across filtered entries
+  const filtered = filterByPeriod(entries, period, customFrom, customTo);
+
+  // Aggregate totals
   const totals = filtered.reduce(
     (acc, e) => ({
       co2_kg:   acc.co2_kg   + (e.total_co2_kg   ?? 0),
@@ -93,12 +106,6 @@ export default function ProcurementDashboard({
   );
 
   const totalItems = filtered.reduce((s, e) => s + e.item_count, 0);
-
-  // Trend bars — sort oldest → newest for the timeline view
-  const chronological = [...filtered].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  );
-  const maxCo2 = Math.max(...chronological.map(e => e.total_co2_kg ?? 0), 1e-12);
 
   if (entries.length === 0) {
     return (
@@ -118,7 +125,7 @@ export default function ProcurementDashboard({
     <div className="procurement-dashboard">
       {/* Period selector */}
       <div className="dash-period-tabs">
-        {PERIODS.map(p => (
+        {QUICK_PERIODS.map(p => (
           <button
             key={p.key}
             className={`dash-period-tab${period === p.key ? ' active' : ''}`}
@@ -127,7 +134,33 @@ export default function ProcurementDashboard({
             {p.label}
           </button>
         ))}
+        <button
+          className={`dash-period-tab${period === 'custom' ? ' active' : ''}`}
+          onClick={() => onPeriodChange('custom')}
+        >
+          Custom
+        </button>
       </div>
+
+      {/* Custom date range inputs */}
+      {period === 'custom' && (
+        <div className="dash-custom-range">
+          <label className="dash-custom-label">From</label>
+          <input
+            type="date"
+            className="dash-date-input"
+            value={customFrom}
+            onChange={e => setCustomFrom(e.target.value)}
+          />
+          <label className="dash-custom-label">To</label>
+          <input
+            type="date"
+            className="dash-date-input"
+            value={customTo}
+            onChange={e => setCustomTo(e.target.value)}
+          />
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="stub-desc" style={{ marginTop: 16 }}>
@@ -137,50 +170,25 @@ export default function ProcurementDashboard({
         <>
           {/* Aggregate metric cards */}
           <div className="dash-metrics-grid">
-            <MetricCard label="CO₂-eq"          value={totals.co2_kg}   unit="kg CO₂-eq"  decimals={3} highlight />
-            <MetricCard label="Water use"         value={totals.water_m3} unit="m³"          decimals={3} />
-            <MetricCard label="Land use"          value={totals.land_m2a} unit="m²·a"        decimals={3} />
-            <MetricCard label="Acidification"     value={totals.so2_kg}   unit="kg SO₂-eq"  decimals={4} />
-            <MetricCard label="Eutrophication FW" value={totals.p_kg}     unit="kg P-eq"    decimals={5} />
-            <MetricCard label="Eutrophication Mar" value={totals.n_kg}    unit="kg N-eq"    decimals={4} />
+            <MetricCard label="CO₂-eq"             value={totals.co2_kg}   unit="kg CO₂-eq"  decimals={3} highlight />
+            <MetricCard label="Water use"           value={totals.water_m3} unit="m³"          decimals={3} />
+            <MetricCard label="Land use"            value={totals.land_m2a} unit="m²·a"        decimals={3} />
+            <MetricCard label="Acidification"       value={totals.so2_kg}   unit="kg SO₂-eq"  decimals={4} />
+            <MetricCard label="Eutrophication FW"   value={totals.p_kg}     unit="kg P-eq"    decimals={5} />
+            <MetricCard label="Eutrophication Mar." value={totals.n_kg}     unit="kg N-eq"    decimals={4} />
           </div>
 
-          {/* Summary line */}
           <div className="dash-summary">
             {filtered.length} order{filtered.length !== 1 ? 's' : ''} · {totalItems} item{totalItems !== 1 ? 's' : ''}
           </div>
 
-          {/* CO₂ trend bars */}
-          <div className="dash-trend">
-            <div className="dash-trend-title">CO₂-eq per order</div>
-            {chronological.map(entry => {
-              const co2 = entry.total_co2_kg ?? 0;
-              return (
-                <div key={entry.id} className="dash-trend-row">
-                  <div className="dash-trend-date">{formatDate(entry.created_at)}</div>
-                  <div className="dash-trend-name" title={entry.name}>{entry.name}</div>
-                  <div className="dash-trend-track">
-                    <div
-                      className="dash-trend-fill"
-                      style={{ width: `${(co2 / maxCo2) * 100}%` }}
-                    />
-                  </div>
-                  <div className="dash-trend-val">{fmt(co2, 3)}</div>
-                </div>
-              );
-            })}
-          </div>
-
           {/* Order list */}
-          <div className="dash-order-list-label">All orders in period</div>
           <div className="history-list">
             {filtered.map(entry => (
               <div key={entry.id} className="history-card">
                 <div className="history-card-body">
                   <div className="history-card-name">{entry.name}</div>
-                  {entry.notes && (
-                    <div className="history-card-notes">{entry.notes}</div>
-                  )}
+                  {entry.notes && <div className="history-card-notes">{entry.notes}</div>}
                   <div className="history-card-meta">
                     <span>{formatDate(entry.created_at)}</span>
                     <span className="history-card-sep">·</span>

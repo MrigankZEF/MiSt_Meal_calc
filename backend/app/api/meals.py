@@ -8,14 +8,13 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import selectinload
 
 from app.api.auth import current_active_user
-from app.db.reference_session import get_reference_session
 from app.db.user_session import get_async_user_session
 from app.models.user import Meal, MealIngredient, User
 from app.schemas.meal import MealIn, MealListItem, MealOut
-from app.services.footprint.compute import compute_totals
+from app.services.footprint.compute import compute_totals_async
 
 router = APIRouter(prefix="/api/meals", tags=["meals"])
 
@@ -40,6 +39,12 @@ async def list_meals(
             notes=m.notes,
             created_at=m.created_at,
             ingredient_count=len(m.ingredients),
+            total_co2_kg=m.total_co2_kg,
+            total_water_m3=m.total_water_m3,
+            total_land_m2a=m.total_land_m2a,
+            total_so2_kg=m.total_so2_kg,
+            total_p_kg=m.total_p_kg,
+            total_n_kg=m.total_n_kg,
         )
         for m in meals
     ]
@@ -50,11 +55,9 @@ async def create_meal(
     body: MealIn,
     user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_user_session),
-    ref_session: Session = Depends(get_reference_session),
 ) -> Meal:
     """Save the current meal state as a named meal."""
-    totals = compute_totals(
-        ref_session,
+    totals = await compute_totals_async(
         [(ing.rivm_item_id, ing.amount, ing.unit) for ing in body.ingredients],
     )
     meal = Meal(
