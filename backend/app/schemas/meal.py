@@ -44,6 +44,8 @@ class MealOut(BaseModel):
     total_so2_kg:   float | None = None
     total_p_kg:     float | None = None
     total_n_kg:     float | None = None
+    eat_lancet_score:       float | None = None
+    planetary_health_score: float | None = None
     ingredients: list[MealIngredientOut]
 
 
@@ -63,3 +65,5 @@ class MealListItem(BaseModel):
     total_so2_kg:   float | None = None
     total_p_kg:     float | None = None
     total_n_kg:     float | None = None
+    eat_lancet_score:       float | None = None
+    planetary_health_score: float | None = None

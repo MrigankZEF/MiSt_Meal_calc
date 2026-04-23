@@ -4,6 +4,24 @@ Newest-first. Each entry: date · author · summary, then bullet details.
 
 ---
 
+- **2026-04-23 · Claude (CLI) · P8 complete — EAT-Lancet scoring + admin review**
+  - **`eat_lancet_tag` table** added to reference DB (`EatLancetTag` ORM model): nevo_code PK, bucket, notes, confirmed_by, confirmed bool. Seeded by `scripts/seed_eat_lancet_tags.py`.
+  - **Seed script**: maps 26 NEVO food-group names → EAT-Lancet buckets. 2328 rows inserted. RIVM coverage 331/344 = **96.2%** (above 90% threshold). High-confidence buckets auto-confirmed; "Bread", "Meat and poultry", "Fats and oils", etc. flagged `confirmed=False` for human review.
+  - **`services/scoring/` package** (3 modules):
+    - `buckets.py` — `get_item_buckets()` resolves (rivm_item_id → nevo_code → bucket), fallback = "other".
+    - `level_mapping.py` — `BucketWeights` dataclass + `dimension_levels()` maps 8 dimensions to 0–4 levels using weight fractions. All thresholds from Willett et al. (2019).
+    - `scorers.py` — `compute_scores()` / `compute_scores_async()`. Returns `{eat_lancet, planetary_health, dimension_levels}`. EAT weights: plant_volume 18 · whole_grains 16 · legumes 16 · animal_moderation 18 · low_processing 16 · veg_diversity 16. Planetary weights: plant_volume 24 · whole_grains 14 · legumes 18 · low_red_meat 24 · low_processing 12 · fruit_nuts 8.
+  - **`POST /api/score`** — on-demand scoring endpoint (no auth). Called by frontend live results panel.
+  - **`GET/PATCH /api/admin/eat-lancet`** — review/update bucket + confirmed status per NEVO code. Requires JWT.
+  - **User DB models** (`Meal`, `ProcurementEntry`): added `eat_lancet_score` and `planetary_health_score` nullable Float columns. ⚠️ Deleted `data/user.db` in dev.
+  - **Pydantic schemas** + **TypeScript types**: score fields added to `MealOut`, `MealListItem`, `ProcurementOut`, `ProcurementListItem`.
+  - **`ScoreCard.tsx`**: two-panel component (EAT Alignment + Planetary Health). Shows numeric score, band label (Strong/Fair/Mixed/Weak) in band-appropriate colour, progress bar, expandable dimension breakdown (dot bars 0–4 per criterion).
+  - **MealMode + ProcurementMode**: replaced "Coming in P8" placeholder with live ScoreCard. Scores fetched via `POST /api/score` on Calculate/Analyse click and on history-load. Scores also cached at save time.
+  - **`/admin` route** (`AdminEatLancet.tsx`): table of all tags grouped by food group, filterable by "needs review". Inline bucket select + confirm checkbox; save per row via PATCH. Protected route.
+  - **13 backend tests still pass.** TypeScript check: 0 errors.
+
+---
+
 - **2026-04-23 · Claude (CLI) · Bug fixes — zero totals, sort, custom date range**
   - **Root cause fixed**: `list_meals` and `list_procurement` were manually constructing list-item schemas without passing the totals fields — they silently defaulted to `null` (rendered as `0` in dashboard; sort-by-metric had no effect because all values were equal-null).
   - **Fix**: all 6 totals (`total_co2_kg`, `total_water_m3`, `total_land_m2a`, `total_so2_kg`, `total_p_kg`, `total_n_kg`) now explicitly passed in both list endpoint constructors.

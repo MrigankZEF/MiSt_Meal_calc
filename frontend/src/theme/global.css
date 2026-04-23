@@ -1805,3 +1805,373 @@ select.ingredient-variant {
   background: var(--green-pale);
   color: var(--green-deep);
 }
+
+/* ------------------------------------------------------------------ */
+/* ScoreCard (P8)                                                      */
+/* ------------------------------------------------------------------ */
+.score-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin: 16px 0;
+}
+
+.score-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.score-card-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  color: var(--green-deep);
+}
+
+.score-card-toggle {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--green-mid);
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+.score-card-toggle:hover { color: var(--green-deep); }
+
+.score-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .score-panels { grid-template-columns: 1fr; }
+}
+
+.score-panel {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+}
+
+.score-panel-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.score-panel-number {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--green-deep);
+}
+
+.score-panel-band {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 4px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Band colour modifiers */
+.score-band--strong .score-panel-band,
+.score-band--strong .score-panel-number { color: var(--green-mid); }
+.score-band--fair .score-panel-band,
+.score-band--fair .score-panel-number   { color: #B88A00; }
+.score-band--mixed .score-panel-band,
+.score-band--mixed .score-panel-number  { color: #C05800; }
+.score-band--weak .score-panel-band,
+.score-band--weak .score-panel-number   { color: var(--red); }
+
+.score-band--strong { border-color: var(--green-light); }
+.score-band--fair   { border-color: #F4D87A; }
+.score-band--mixed  { border-color: #F0C09A; }
+.score-band--weak   { border-color: rgba(232, 82, 58, 0.35); }
+
+.score-panel-bar {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.score-panel-bar-fill {
+  height: 100%;
+  background: var(--green-mid);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.score-band--fair   .score-panel-bar-fill { background: #C8A000; }
+.score-band--mixed  .score-panel-bar-fill { background: #C05800; }
+.score-band--weak   .score-panel-bar-fill { background: var(--red); }
+
+/* Dimension table */
+.score-dim-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 8px;
+}
+.score-dim-table tr {
+  border-top: 1px solid var(--border);
+}
+.score-dim-table td {
+  padding: 3px 0;
+  vertical-align: middle;
+}
+
+.score-dim-label {
+  font-size: 11px;
+  color: var(--muted);
+  padding-right: 8px;
+  white-space: nowrap;
+}
+
+.score-dim-dots {
+  display: flex;
+  gap: 3px;
+  padding: 0 6px;
+}
+
+.score-dotbar {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.score-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 1px solid var(--border-strong);
+  display: inline-block;
+}
+.score-dot--filled {
+  background: var(--green-mid);
+  border-color: var(--green-mid);
+}
+
+.score-dim-num {
+  font-size: 11px;
+  color: var(--hint);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-card-note {
+  font-size: 11px;
+  color: var(--hint);
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin — EAT-Lancet bucket review (P8)                              */
+/* ------------------------------------------------------------------ */
+.admin-page {
+  min-height: calc(100vh - 56px);
+  margin-top: 56px;
+  padding: 32px 40px;
+  max-width: 900px;
+}
+
+.admin-header {
+  margin-bottom: 20px;
+}
+
+.admin-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: var(--green-deep);
+  margin-bottom: 6px;
+}
+
+.admin-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.admin-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.admin-count {
+  font-size: 12px;
+  color: var(--hint);
+}
+
+.admin-group {
+  margin-bottom: 32px;
+}
+
+.admin-group-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green-deep);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-group-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-badge-review {
+  background: rgba(212, 160, 23, 0.15);
+  color: #8A6000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--hint);
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+.admin-row {
+  border-bottom: 1px solid var(--border);
+}
+.admin-row--review {
+  background: rgba(212, 160, 23, 0.04);
+}
+.admin-row:hover {
+  background: var(--bg-alt);
+}
+
+.admin-cell {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+.admin-cell--code {
+  font-size: 11px;
+  color: var(--hint);
+  white-space: nowrap;
+}
+.admin-cell--name {
+  max-width: 200px;
+}
+.admin-dutch {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-english {
+  display: block;
+  font-size: 11px;
+  color: var(--hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-cell--bucket {
+  white-space: nowrap;
+}
+.admin-select {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+.admin-select:focus {
+  border-color: var(--green-mid);
+}
+.admin-cell--confirm {
+  white-space: nowrap;
+}
+.admin-confirm-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.admin-cell--action {
+  width: 160px;
+}
+.btn-admin-save {
+  background: var(--green-mid);
+  color: #fff;
+  border: none;
+  border-radius: var(--r);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-admin-save:hover:not(:disabled) {
+  background: var(--green-deep);
+}
+.btn-admin-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.admin-error {
+  font-size: 11px;
+  color: var(--red);
+  margin-left: 8px;
+}
+.admin-note {
+  display: block;
+  font-size: 10px;
+  color: #8A6000;
+  margin-top: 3px;
+  font-style: italic;
+}

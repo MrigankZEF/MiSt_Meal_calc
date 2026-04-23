@@ -1,4 +1,6 @@
 import type {
+  EatLancetTagItem,
+  EatLancetTagUpdate,
   IngredientSearchResponse,
   MealIn,
   MealListItem,
@@ -7,6 +9,7 @@ import type {
   ProcurementListItem,
   ProcurementOut,
   RivmItemDetail,
+  ScoreResponse,
   UserOut,
 } from './types';
 
@@ -184,4 +187,46 @@ export async function deleteProcurement(
     headers: authHeaders(token),
   });
   await assertOk(res);
+}
+
+// ── Scoring ────────────────────────────────────────────────────────────────
+
+/** Compute EAT-Lancet + Planetary Health scores for a list of items.
+ *  No auth required — uses read-only reference DB. */
+export async function scoreItems(
+  items: Array<{ rivm_item_id: number; amount: number; unit: string }>,
+): Promise<ScoreResponse> {
+  const res = await fetch(`${BASE}/api/score`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  });
+  await assertOk(res);
+  return res.json() as Promise<ScoreResponse>;
+}
+
+// ── Admin — EAT-Lancet tag review ──────────────────────────────────────────
+
+export async function listEatLancetTags(
+  token: string,
+  needsReview = false,
+): Promise<EatLancetTagItem[]> {
+  const url = `${BASE}/api/admin/eat-lancet${needsReview ? '?needs_review=true' : ''}`;
+  const res = await fetch(url, { headers: authHeaders(token) });
+  await assertOk(res);
+  return res.json() as Promise<EatLancetTagItem[]>;
+}
+
+export async function updateEatLancetTag(
+  token: string,
+  nevo_code: number,
+  update: EatLancetTagUpdate,
+): Promise<EatLancetTagItem> {
+  const res = await fetch(`${BASE}/api/admin/eat-lancet/${nevo_code}`, {
+    method: 'PATCH',
+    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify(update),
+  });
+  await assertOk(res);
+  return res.json() as Promise<EatLancetTagItem>;
 }

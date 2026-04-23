@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import JSON, Float, Index, Integer, String
+from sqlalchemy import JSON, Boolean, Float, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -103,4 +103,33 @@ class NevoNutrition(Base):
         return (
             f"NevoNutrition(nevo_code={self.nevo_code}, "
             f"english_name={self.english_name!r}, kcal={self.kcal})"
+        )
+
+
+class EatLancetTag(Base):
+    """EAT-Lancet food-system bucket for a NEVO code.
+
+    Valid buckets:
+        plant_veg, plant_fruit, whole_grain, refined_grain, legume, nut_seed,
+        dairy, red_meat, white_meat, fish, egg, oil_healthy, oil_unhealthy,
+        ultra_processed, sugar_sweet, other
+
+    ``confirmed`` is False for auto-classified entries that should be reviewed
+    by a human before being trusted for scoring.
+    ``confirmed_by`` records who/what set the bucket (e.g. "auto:food_group_en"
+    or a reviewer's email address).
+    """
+
+    __tablename__ = "eat_lancet_tag"
+
+    nevo_code:    Mapped[int]        = mapped_column(Integer, primary_key=True)
+    bucket:       Mapped[str]        = mapped_column(String, nullable=False)
+    notes:        Mapped[str]        = mapped_column(String, server_default="")
+    confirmed_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    confirmed:    Mapped[bool]       = mapped_column(Boolean, server_default="0", nullable=False)
+
+    def __repr__(self) -> str:
+        return (
+            f"EatLancetTag(nevo_code={self.nevo_code}, "
+            f"bucket={self.bucket!r}, confirmed={self.confirmed})"
         )

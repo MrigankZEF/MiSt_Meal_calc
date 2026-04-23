@@ -67,6 +67,9 @@ class Meal(UserBase):
     total_so2_kg:   Mapped[float | None] = mapped_column(Float, nullable=True)
     total_p_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
     total_n_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Cached EAT-Lancet scores — computed at save time (P8+)
+    eat_lancet_score:       Mapped[float | None] = mapped_column(Float, nullable=True)
+    planetary_health_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="meals")
     ingredients: Mapped[list[MealIngredient]] = relationship(
@@ -125,6 +128,9 @@ class ProcurementEntry(UserBase):
     total_so2_kg:   Mapped[float | None] = mapped_column(Float, nullable=True)
     total_p_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
     total_n_kg:     Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Cached EAT-Lancet scores — computed at save time (P8+)
+    eat_lancet_score:       Mapped[float | None] = mapped_column(Float, nullable=True)
+    planetary_health_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="procurement_entries")
     items: Mapped[list[ProcurementItem]] = relationship(

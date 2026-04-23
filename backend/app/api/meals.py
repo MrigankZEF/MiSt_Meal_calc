@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 
@@ -15,6 +16,7 @@ from app.db.user_session import get_async_user_session
 from app.models.user import Meal, MealIngredient, User
 from app.schemas.meal import MealIn, MealListItem, MealOut
 from app.services.footprint.compute import compute_totals_async
+from app.services.scoring.scorers import compute_scores_async
 
 router = APIRouter(prefix="/api/meals", tags=["meals"])
 
@@ -45,6 +47,8 @@ async def list_meals(
             total_so2_kg=m.total_so2_kg,
             total_p_kg=m.total_p_kg,
             total_n_kg=m.total_n_kg,
+            eat_lancet_score=m.eat_lancet_score,
+            planetary_health_score=m.planetary_health_score,
         )
         for m in meals
     ]
@@ -57,8 +61,10 @@ async def create_meal(
     session: AsyncSession = Depends(get_async_user_session),
 ) -> Meal:
     """Save the current meal state as a named meal."""
-    totals = await compute_totals_async(
-        [(ing.rivm_item_id, ing.amount, ing.unit) for ing in body.ingredients],
+    item_tuples = [(ing.rivm_item_id, ing.amount, ing.unit) for ing in body.ingredients]
+    totals, scores = await asyncio.gather(
+        compute_totals_async(item_tuples),
+        compute_scores_async(item_tuples),
     )
     meal = Meal(
         user_id=user.id,
@@ -71,6 +77,8 @@ async def create_meal(
         total_so2_kg=totals["so2_kg"],
         total_p_kg=totals["p_kg"],
         total_n_kg=totals["n_kg"],
+        eat_lancet_score=scores["eat_lancet"],
+        planetary_health_score=scores["planetary_health"],
         ingredients=[
             MealIngredient(
                 rivm_item_id=ing.rivm_item_id,

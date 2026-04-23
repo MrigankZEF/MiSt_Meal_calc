@@ -11,14 +11,15 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getRivmItem, saveProcurement } from '../api/client';
-import type { IngredientGroup, MealItem, Unit } from '../api/types';
+import { getRivmItem, saveProcurement, scoreItems } from '../api/client';
+import type { IngredientGroup, MealItem, ScoreResponse, Unit } from '../api/types';
 import BarsView from '../components/BarsView';
 import HeatmapView from '../components/HeatmapView';
 import IngredientSearch from '../components/IngredientSearch';
 import MetricChips from '../components/MetricChips';
 import NutritionStrip from '../components/NutritionStrip';
 import ProcurementItemCard from '../components/ProcurementItemCard';
+import ScoreCard from '../components/ScoreCard';
 import RadarView from '../components/RadarView';
 import { useAuth } from '../context/AuthContext';
 
@@ -99,6 +100,10 @@ export default function ProcurementMode() {
   const [activeTab, setActiveTab] = useState<Tab>('bars');
   const [exporting, setExporting] = useState(false);
 
+  // ── Score state ───────────────────────────────────────────────────────
+  const [scores, setScores] = useState<ScoreResponse | null>(null);
+  const [scoresLoading, setScoresLoading] = useState(false);
+
   // ── Save state ────────────────────────────────────────────────────────
   const [entryName, setEntryName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -117,14 +122,32 @@ export default function ProcurementMode() {
       setShowResults(true);
       if (state.loadedEntryName) setEntryName(state.loadedEntryName);
       window.history.replaceState({}, '');
+      runScoring(state.loadedItems);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hide results when all items are removed
   useEffect(() => {
-    if (items.length === 0) setShowResults(false);
+    if (items.length === 0) { setShowResults(false); setScores(null); }
   }, [items.length]);
+
+  // ── Scoring ────────────────────────────────────────────────────────────
+
+  function runScoring(currentItems: MealItem[]) {
+    if (currentItems.length === 0) return;
+    setScoresLoading(true);
+    setScores(null);
+    scoreItems(currentItems.map(i => ({ rivm_item_id: i.rivm_item_id, amount: i.amount, unit: i.unit })))
+      .then(setScores)
+      .catch(err => console.error('Scoring failed:', err))
+      .finally(() => setScoresLoading(false));
+  }
+
+  function handleAnalyse() {
+    setShowResults(true);
+    runScoring(items);
+  }
 
   // ── Ingredient handlers ────────────────────────────────────────────────
 
@@ -261,7 +284,7 @@ export default function ProcurementMode() {
           <button
             className="btn-primary"
             disabled={items.length === 0 || adding}
-            onClick={() => setShowResults(true)}
+            onClick={handleAnalyse}
           >
             {adding ? 'Loading…' : 'Analyse procurement'}
           </button>
@@ -327,6 +350,14 @@ export default function ProcurementMode() {
               Nutrition (total order, per 100 g data from NEVO 2025)
             </div>
             <NutritionStrip items={items} />
+
+            {/* EAT-Lancet scores */}
+            {scoresLoading && (
+              <p className="stub-desc" style={{ margin: '16px 0 8px' }}>
+                Computing scores…
+              </p>
+            )}
+            {!scoresLoading && scores && <ScoreCard scores={scores} />}
 
             {/* ── Save procurement ────────────────────────────────── */}
             <div className="save-meal-section">

@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Nav from './components/Nav';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import AdminEatLancet from './routes/AdminEatLancet';
 import History from './routes/History';
 import Landing from './routes/Landing';
 import Login from './routes/Login';
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/meal"         element={<ProtectedRoute><MealMode /></ProtectedRoute>} />
           <Route path="/procurement"  element={<ProtectedRoute><ProcurementMode /></ProtectedRoute>} />
           <Route path="/history"      element={<ProtectedRoute><History /></ProtectedRoute>} />
+          <Route path="/admin"        element={<ProtectedRoute><AdminEatLancet /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

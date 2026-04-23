@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime, timezone
 
@@ -15,6 +16,7 @@ from app.db.user_session import get_async_user_session
 from app.models.user import ProcurementEntry, ProcurementItem, User
 from app.schemas.procurement import ProcurementIn, ProcurementListItem, ProcurementOut
 from app.services.footprint.compute import compute_totals_async
+from app.services.scoring.scorers import compute_scores_async
 
 router = APIRouter(prefix="/api/procurement", tags=["procurement"])
 
@@ -45,6 +47,8 @@ async def list_procurement(
             total_so2_kg=e.total_so2_kg,
             total_p_kg=e.total_p_kg,
             total_n_kg=e.total_n_kg,
+            eat_lancet_score=e.eat_lancet_score,
+            planetary_health_score=e.planetary_health_score,
         )
         for e in entries
     ]
@@ -57,8 +61,10 @@ async def create_procurement(
     session: AsyncSession = Depends(get_async_user_session),
 ) -> ProcurementEntry:
     """Save a procurement entry."""
-    totals = await compute_totals_async(
-        [(item.rivm_item_id, item.amount, item.unit) for item in body.items],
+    item_tuples = [(item.rivm_item_id, item.amount, item.unit) for item in body.items]
+    totals, scores = await asyncio.gather(
+        compute_totals_async(item_tuples),
+        compute_scores_async(item_tuples),
     )
     entry = ProcurementEntry(
         user_id=user.id,
@@ -71,6 +77,8 @@ async def create_procurement(
         total_so2_kg=totals["so2_kg"],
         total_p_kg=totals["p_kg"],
         total_n_kg=totals["n_kg"],
+        eat_lancet_score=scores["eat_lancet"],
+        planetary_health_score=scores["planetary_health"],
         items=[
             ProcurementItem(
                 rivm_item_id=item.rivm_item_id,

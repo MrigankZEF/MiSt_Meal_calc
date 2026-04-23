@@ -10,8 +10,8 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getRivmItem, saveMeal } from '../api/client';
-import type { IngredientGroup, MealItem, Unit } from '../api/types';
+import { getRivmItem, saveMeal, scoreItems } from '../api/client';
+import type { IngredientGroup, MealItem, ScoreResponse, Unit } from '../api/types';
 import BarsView from '../components/BarsView';
 import HeatmapView from '../components/HeatmapView';
 import IngredientSearch from '../components/IngredientSearch';
@@ -19,6 +19,7 @@ import MealItemCard from '../components/MealItemCard';
 import MetricChips from '../components/MetricChips';
 import NutritionStrip from '../components/NutritionStrip';
 import RadarView from '../components/RadarView';
+import ScoreCard from '../components/ScoreCard';
 import { useAuth } from '../context/AuthContext';
 
 type Tab = 'bars' | 'radar' | 'heatmap';
@@ -97,6 +98,10 @@ export default function MealMode() {
   const [activeTab, setActiveTab] = useState<Tab>('bars');
   const [exporting, setExporting] = useState(false);
 
+  // ── Score state ───────────────────────────────────────────────────────
+  const [scores, setScores] = useState<ScoreResponse | null>(null);
+  const [scoresLoading, setScoresLoading] = useState(false);
+
   // ── Save state ────────────────────────────────────────────────────────
   const [mealName, setMealName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -116,16 +121,35 @@ export default function MealMode() {
       if (state.loadedMealName) setMealName(state.loadedMealName);
       // Clear the state so a back-navigation doesn't re-trigger this
       window.history.replaceState({}, '');
+      // Re-score the loaded items
+      runScoring(state.loadedItems);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hide results when all ingredients are removed
   useEffect(() => {
-    if (items.length === 0) setShowResults(false);
+    if (items.length === 0) { setShowResults(false); setScores(null); }
   }, [items.length]);
 
   // savedOk doesn't auto-dismiss — user navigates to History or keeps working
+
+  // ── Scoring ────────────────────────────────────────────────────────────
+
+  function runScoring(currentItems: MealItem[]) {
+    if (currentItems.length === 0) return;
+    setScoresLoading(true);
+    setScores(null);
+    scoreItems(currentItems.map(i => ({ rivm_item_id: i.rivm_item_id, amount: i.amount, unit: i.unit })))
+      .then(setScores)
+      .catch(err => console.error('Scoring failed:', err))
+      .finally(() => setScoresLoading(false));
+  }
+
+  function handleCalculate() {
+    setShowResults(true);
+    runScoring(items);
+  }
 
   // ── Ingredient handlers ────────────────────────────────────────────────
 
@@ -276,7 +300,7 @@ export default function MealMode() {
           <button
             className="btn-primary"
             disabled={items.length === 0 || adding}
-            onClick={() => setShowResults(true)}
+            onClick={handleCalculate}
           >
             {adding ? 'Loading…' : 'Calculate meal footprint'}
           </button>
@@ -343,14 +367,13 @@ export default function MealMode() {
             </div>
             <NutritionStrip items={items} />
 
-            {/* EAT-Lancet placeholder */}
-            <div className="score-placeholder">
-              <div className="score-placeholder-icon" />
-              <div>
-                <div className="score-placeholder-label">EAT-Lancet score</div>
-                <div className="score-placeholder-soon">Coming in P8</div>
-              </div>
-            </div>
+            {/* EAT-Lancet scores */}
+            {scoresLoading && (
+              <p className="stub-desc" style={{ margin: '16px 0 8px' }}>
+                Computing scores…
+              </p>
+            )}
+            {!scoresLoading && scores && <ScoreCard scores={scores} />}
 
             {/* ── Save meal ──────────────────────────────────────────── */}
             <div className="save-meal-section">

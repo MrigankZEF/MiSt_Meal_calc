@@ -134,6 +134,8 @@ export interface MealTotals {
   total_so2_kg:   number | null;
   total_p_kg:     number | null;
   total_n_kg:     number | null;
+  eat_lancet_score:       number | null;
+  planetary_health_score: number | null;
 }
 
 export interface MealOut extends MealTotals {
@@ -207,6 +209,8 @@ export interface ProcurementTotals {
   total_so2_kg:   number | null;
   total_p_kg:     number | null;
   total_n_kg:     number | null;
+  eat_lancet_score:       number | null;
+  planetary_health_score: number | null;
 }
 
 export interface ProcurementOut extends ProcurementTotals {
@@ -233,3 +237,30 @@ export type MetricKey =
   | 'n_kg'
   | 'land_m2a'
   | 'water_m3';
+
+// ---------------------------------------------------------------------------
+// EAT-Lancet scoring types
+// ---------------------------------------------------------------------------
+
+export interface ScoreResponse {
+  eat_lancet: number;
+  planetary_health: number;
+  dimension_levels: Record<string, number>;
+}
+
+export interface EatLancetTagItem {
+  nevo_code: number;
+  bucket: string;
+  notes: string;
+  confirmed_by: string | null;
+  confirmed: boolean;
+  dutch_name: string | null;
+  english_name: string | null;
+  food_group_en: string | null;
+}
+
+export interface EatLancetTagUpdate {
+  bucket: string;
+  notes: string;
+  confirmed: boolean;
+}

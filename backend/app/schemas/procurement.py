@@ -44,6 +44,8 @@ class ProcurementOut(BaseModel):
     total_so2_kg:   float | None = None
     total_p_kg:     float | None = None
     total_n_kg:     float | None = None
+    eat_lancet_score:       float | None = None
+    planetary_health_score: float | None = None
     items: list[ProcurementItemOut]
 
 
@@ -63,3 +65,5 @@ class ProcurementListItem(BaseModel):
     total_so2_kg:   float | None = None
     total_p_kg:     float | None = None
     total_n_kg:     float | None = None
+    eat_lancet_score:       float | None = None
+    planetary_health_score: float | None = None

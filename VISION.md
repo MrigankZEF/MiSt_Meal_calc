@@ -10,10 +10,10 @@
 
 | | |
 |---|---|
-| **Phase** | P7 complete. Next: **P8** — EAT-Lancet bucket tagging + Level 1 scoring. |
-| **Last session** | 2026-04-23 — bug fixes (zero totals, sort, custom date range), procurement dashboard, meal sort. |
-| **Active features** | Auth (JWT, fastapi-users), Meal mode (save/load), Procurement mode (distribution-only, save/load), History (Meals + Procurement tabs, sort by 6 env metrics, period filter + custom range), Procurement Dashboard (6 aggregate metric cards). |
-| **Parked** | Cooking double-count fix (§10.1 — needs RIVM docs review). Bar chart redesign (§10.2). Radar normalization (§10.3). |
+| **Phase** | P8 complete. Next: **P9** — PHDI Level 2 toggle. |
+| **Last session** | 2026-04-23 — P8: EAT-Lancet scoring service, ScoreCard UI, admin review page. |
+| **Active features** | Auth (JWT), Meal mode (save/load + scores), Procurement mode (save/load + scores), History (Meals + Procurement tabs, sort, period filter), Procurement Dashboard, EAT-Lancet ScoreCard (live + cached), `/admin` bucket review. |
+| **Parked** | Cooking double-count fix (§10.1 — needs RIVM docs review). Bar chart redesign (§10.2). Radar normalization (§10.3). PHDI (P9). |
 | **Dev note** | Dev uses SQLite `data/user.db`; prod uses Postgres. Delete `data/user.db` if user-DB model columns change. |
 
 ---
