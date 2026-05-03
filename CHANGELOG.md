@@ -4,6 +4,15 @@ Newest-first. Each entry: date · author · summary, then bullet details.
 
 ---
 
+- **2026-05-03 · Claude (CLI) · Railway deployment — single-service, frontend bundled into backend**
+  - **`backend/Dockerfile` rewritten** as multi-stage build: Node 20 stage builds the React frontend (`npm ci && npm run build`); Python 3.12-slim stage installs the backend, copies scripts, bakes in `data/reference.db`, and copies the built `dist/` as `frontend_dist/`.
+  - **`railway.json`** — `buildContext` changed from `"backend"` to `"."` (repo root) so the Dockerfile can reach both `backend/` and `data/`.
+  - **`backend/app/main.py`** — production static file serving added: `/assets` StaticFiles mount for Vite-hashed JS/CSS; catch-all `/{full_path:path}` route serves the requested file if it exists in `frontend_dist/`, otherwise returns `index.html` (SPA fallback). Gracefully absent in local dev (guard: `if _FRONTEND_DIST.exists()`).
+  - No CORS or `VITE_API_URL` config needed — same-origin serving.
+  - Railway env vars required: `USER_DB_URL` (PostgreSQL plugin), `SECRET_KEY`.
+
+---
+
 - **2026-04-23 · Claude (CLI) · P8 complete — EAT-Lancet scoring + admin review**
   - **`eat_lancet_tag` table** added to reference DB (`EatLancetTag` ORM model): nevo_code PK, bucket, notes, confirmed_by, confirmed bool. Seeded by `scripts/seed_eat_lancet_tags.py`.
   - **Seed script**: maps 26 NEVO food-group names → EAT-Lancet buckets. 2328 rows inserted. RIVM coverage 331/344 = **96.2%** (above 90% threshold). High-confidence buckets auto-confirmed; "Bread", "Meat and poultry", "Fats and oils", etc. flagged `confirmed=False` for human review.
