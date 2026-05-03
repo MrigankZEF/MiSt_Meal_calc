@@ -4,6 +4,15 @@ Newest-first. Each entry: date · author · summary, then bullet details.
 
 ---
 
+- **2026-05-03 · Claude (CLI) · EAT-Lancet scoring redesign — veg_and_fruit, whole_grains fix, oil exclusion, re-seed**
+  - **`plant_volume` → `veg_and_fruit`** across scorers, level_mapping, frontend ScoreCard. Dimension now covers only `plant_veg + plant_fruit` (not grains/legumes, matching academic literature).
+  - **`whole_grains` dimension rewritten**: uses `whole_grain_kg / total_kg` (absolute fraction of meal) with thresholds 0/5/10/20%. No-grain meals now score L0 instead of L2 — removes the free 8 EAT points given to pure-meat meals.
+  - **Oils excluded from `total_kg`** (`oil_healthy`, `oil_unhealthy`) so they don't dilute fractions for other dimensions.
+  - **`seed_eat_lancet_tags.py` rewritten** with a second name-pattern pass: 157 overrides applied — 64 `whole_grain` entries (was 0), 25 `white_meat` entries (chicken/turkey, was 0), 10 `oil_unhealthy` (butter/frying fat), fruit juices → `plant_fruit`, peanut butter → `nut_seed`, tofu/tempeh/soy drinks → `legume`.
+  - All 13 backend tests pass; TypeScript clean.
+
+---
+
 - **2026-05-03 · Claude (CLI) · Railway deployment — single-service, frontend bundled into backend**
   - **`backend/Dockerfile` rewritten** as multi-stage build: Node 20 stage builds the React frontend (`npm ci && npm run build`); Python 3.12-slim stage installs the backend, copies scripts, bakes in `data/reference.db`, and copies the built `dist/` as `frontend_dist/`.
   - **`railway.json`** — `buildContext` changed from `"backend"` to `"."` (repo root) so the Dockerfile can reach both `backend/` and `data/`.

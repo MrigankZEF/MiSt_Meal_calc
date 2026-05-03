@@ -29,7 +29,7 @@ const BAND_CLASS: Record<Band, string> = {
 // ── Dimension labels ──────────────────────────────────────────────────────────
 
 const DIM_LABELS: Record<string, string> = {
-  plant_volume:      'Plant volume',
+  veg_and_fruit:     'Veg & fruit',
   whole_grains:      'Whole grains',
   legumes:           'Legumes',
   animal_moderation: 'Animal moderation',
@@ -40,8 +40,8 @@ const DIM_LABELS: Record<string, string> = {
 };
 
 // Which dimensions feed each score
-const EAT_DIMS = ['plant_volume', 'whole_grains', 'legumes', 'animal_moderation', 'low_processing', 'veg_diversity'];
-const PHD_DIMS = ['plant_volume', 'whole_grains', 'legumes', 'low_red_meat', 'low_processing', 'fruit_nuts'];
+const EAT_DIMS = ['veg_and_fruit', 'whole_grains', 'legumes', 'animal_moderation', 'low_processing', 'veg_diversity'];
+const PHD_DIMS = ['veg_and_fruit', 'whole_grains', 'legumes', 'low_red_meat', 'low_processing', 'fruit_nuts'];
 
 function DotBar({ level }: { level: number }) {
   return (

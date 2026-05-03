@@ -3,11 +3,11 @@
 Formulas from VISION.md §6.1, weights from Willett et al. (2019):
 
   EAT-Lancet Alignment Score (EAT)  — weights sum 100:
-    plant_volume 18 · whole_grains 16 · legumes 16
+    veg_and_fruit 18 · whole_grains 16 · legumes 16
     animal_moderation 18 · low_processing 16 · veg_diversity 16
 
   Planetary Health Meal Score (PHS) — weights sum 100:
-    plant_volume 24 · whole_grains 14 · legumes 18
+    veg_and_fruit 24 · whole_grains 14 · legumes 18
     low_red_meat 24 · low_processing 12 · fruit_nuts 8
 
 Each dimension level (0–4) contributes: (level / 4) × weight.
@@ -24,13 +24,13 @@ import asyncio
 from sqlalchemy.orm import Session
 
 from app.services.footprint.compute import _to_kg
-from app.services.scoring.buckets import get_item_buckets
+from app.services.scoring.buckets import OIL_BUCKETS, get_item_buckets
 from app.services.scoring.level_mapping import BucketWeights, dimension_levels
 
 # ── Score weights ─────────────────────────────────────────────────────────────
 
 EAT_WEIGHTS: dict[str, float] = {
-    "plant_volume":      18.0,
+    "veg_and_fruit":     18.0,
     "whole_grains":      16.0,
     "legumes":           16.0,
     "animal_moderation": 18.0,
@@ -39,7 +39,7 @@ EAT_WEIGHTS: dict[str, float] = {
 }
 
 PLANETARY_WEIGHTS: dict[str, float] = {
-    "plant_volume":   24.0,
+    "veg_and_fruit":  24.0,
     "whole_grains":   14.0,
     "legumes":        18.0,
     "low_red_meat":   24.0,
@@ -88,7 +88,8 @@ def _build_bucket_weights(
         nevo_code, bucket = item_buckets.get(rivm_id, (None, "other"))
 
         bw.bucket_kg[bucket] = bw.bucket_kg.get(bucket, 0.0) + kg
-        bw.total_kg += kg
+        if bucket not in OIL_BUCKETS:
+            bw.total_kg += kg
 
         if bucket == "plant_veg" and nevo_code is not None:
             seen_plant_veg_nevo.add(nevo_code)

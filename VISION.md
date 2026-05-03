@@ -10,10 +10,10 @@
 
 | | |
 |---|---|
-| **Phase** | P8 complete. Next: **P9** — PHDI Level 2 toggle. |
-| **Last session** | 2026-05-03 — Railway deployment: multi-stage Dockerfile, frontend bundled into backend, SPA fallback route. |
+| **Phase** | P8 complete + scoring redesign. Next: **P9** — Stubbendorff / Cacau/PHDI scoring systems. |
+| **Last session** | 2026-05-03 — EAT-Lancet scoring redesign: plant_volume→veg_and_fruit, whole_grains absolute threshold fix, oils excluded from total_kg, seed script name-pattern overrides (64 whole_grain, 25 white_meat). |
 | **Active features** | Auth (JWT), Meal mode (save/load + scores), Procurement mode (save/load + scores), History (Meals + Procurement tabs, sort, period filter), Procurement Dashboard, EAT-Lancet ScoreCard (live + cached), `/admin` bucket review. Railway-ready (single service, frontend + backend). |
-| **Parked** | Cooking double-count fix (§10.1 — needs RIVM docs review). Bar chart redesign (§10.2). Radar normalization (§10.3). PHDI (P9). |
+| **Parked** | Cooking double-count fix (§10.1 — needs RIVM docs review). Bar chart redesign (§10.2). Radar normalization (§10.3). Stubbendorff score (P9). Cacau/PHDI score (P9). |
 | **Dev note** | Dev uses SQLite `data/user.db`; prod uses Postgres. Delete `data/user.db` if user-DB model columns change. Railway env vars needed: `USER_DB_URL`, `SECRET_KEY`. |
 
 ---

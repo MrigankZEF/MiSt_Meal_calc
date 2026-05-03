@@ -19,7 +19,6 @@ from dataclasses import dataclass, field
 from app.services.scoring.buckets import (
     ANIMAL_BUCKETS,
     FRUIT_NUT_BUCKETS,
-    GRAIN_BUCKETS,
     PLANT_BUCKETS,
     PROCESSED_BUCKETS,
 )
@@ -60,31 +59,27 @@ def _level_from_thresholds(value: float, thresholds: list[float]) -> int:
 
 # ── Individual dimension calculators ─────────────────────────────────────────
 
-def _plant_volume(bw: BucketWeights) -> int:
-    """Fraction of plate weight from plant foods (all plant buckets).
+def _veg_and_fruit(bw: BucketWeights) -> int:
+    """Fraction of total weight (excl. oils) from vegetables + fruit.
 
     Thresholds (% of total weight):
       4 ≥ 75%   3 ≥ 55%   2 ≥ 40%   1 ≥ 25%   0 < 25%
-    Source: EAT-Lancet recommends ≥75% of calories from plant foods.
     """
-    frac = bw.fraction(*PLANT_BUCKETS)
+    frac = bw.fraction(*PLANT_BUCKETS)  # PLANT_BUCKETS = {plant_veg, plant_fruit}
     return _level_from_thresholds(frac, [0.25, 0.40, 0.55, 0.75])
 
 
 def _whole_grains(bw: BucketWeights) -> int:
-    """Fraction of grain weight that is whole grain.
+    """Whole-grain fraction of total meal weight (excl. oils).
 
-    If there are no grains at all → level 2 (neutral: not penalised, not rewarded).
-    Thresholds (whole / total-grain):
-      4 ≥ 75%   3 ≥ 50%   2 ≥ 25%   1 > 0%    0 = 0%
-    Source: EAT-Lancet recommends ≥50% of grain as whole grain.
+    No grains at all → L0 (absence is penalised, not neutral).
+    Thresholds (whole_grain_kg / total_kg):
+      0% → L0   >0–5% → L1   5–10% → L2   10–20% → L3   ≥20% → L4
     """
-    total_grain = sum(bw.bucket_kg.get(b, 0.0) for b in GRAIN_BUCKETS)
-    if total_grain <= 0:
-        return 2  # no grains → neutral
-    whole = bw.bucket_kg.get("whole_grain", 0.0)
-    frac = whole / total_grain
-    return _level_from_thresholds(frac, [1e-9, 0.25, 0.50, 0.75])
+    if bw.total_kg <= 0:
+        return 0
+    frac = bw.bucket_kg.get("whole_grain", 0.0) / bw.total_kg
+    return _level_from_thresholds(frac, [1e-9, 0.05, 0.10, 0.20])
 
 
 def _legumes(bw: BucketWeights) -> int:
@@ -170,7 +165,7 @@ def dimension_levels(bw: BucketWeights) -> dict[str, int]:
     """
     return {
         # EAT-Lancet Alignment dimensions
-        "plant_volume":       _plant_volume(bw),
+        "veg_and_fruit":      _veg_and_fruit(bw),
         "whole_grains":       _whole_grains(bw),
         "legumes":            _legumes(bw),
         "animal_moderation":  _animal_moderation(bw),

@@ -40,13 +40,12 @@ BUCKETS: frozenset[str] = frozenset({
 
 # ── Semantic groupings ────────────────────────────────────────────────────────
 
-PLANT_BUCKETS:    frozenset[str] = frozenset({
-    "plant_veg", "plant_fruit", "whole_grain", "refined_grain", "legume", "nut_seed",
-})
+PLANT_BUCKETS:    frozenset[str] = frozenset({"plant_veg", "plant_fruit"})
 GRAIN_BUCKETS:    frozenset[str] = frozenset({"whole_grain", "refined_grain"})
 ANIMAL_BUCKETS:   frozenset[str] = frozenset({"red_meat", "white_meat", "fish", "egg", "dairy"})
 PROCESSED_BUCKETS: frozenset[str] = frozenset({"ultra_processed", "sugar_sweet"})
 FRUIT_NUT_BUCKETS: frozenset[str] = frozenset({"plant_fruit", "nut_seed"})
+OIL_BUCKETS:      frozenset[str] = frozenset({"oil_healthy", "oil_unhealthy"})
 
 
 # ── Lookup helper ─────────────────────────────────────────────────────────────
