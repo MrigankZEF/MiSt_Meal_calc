@@ -7,8 +7,10 @@
  * - Order list with per-order CO₂ and open/delete actions
  */
 
-import { useState } from 'react';
-import type { ProcurementListItem } from '../api/types';
+import { useEffect, useState } from 'react';
+import { aggregateProcurementScore } from '../api/client';
+import type { AggregateScoreResponse, ProcurementListItem } from '../api/types';
+import ScoreCard from './ScoreCard';
 
 type Period = '2w' | '1m' | '3m' | '1y' | 'all' | 'custom';
 
@@ -74,6 +76,7 @@ interface Props {
   openingId: string | null;
   deletingId: string | null;
   onGoToProcurement: () => void;
+  token: string;
 }
 
 export default function ProcurementDashboard({
@@ -86,11 +89,41 @@ export default function ProcurementDashboard({
   openingId,
   deletingId,
   onGoToProcurement,
+  token,
 }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo,   setCustomTo]   = useState('');
 
   const filtered = filterByPeriod(entries, period, customFrom, customTo);
+
+  // Aggregate EAT-Lancet scores for everything currently in view.
+  // Computed on the backend by pooling all items across the filtered orders
+  // (cannot average per-order scores — must re-score the combined basket).
+  const filteredIds = filtered.map(e => e.id);
+  const idKey = [...filteredIds].sort().join(',');  // stable dependency
+
+  const [aggScore, setAggScore]       = useState<AggregateScoreResponse | null>(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
+  const [scoreError, setScoreError]   = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || filteredIds.length === 0) {
+      setAggScore(null);
+      return;
+    }
+    let cancelled = false;
+    setScoreLoading(true);
+    setScoreError(null);
+    aggregateProcurementScore(token, filteredIds)
+      .then(res => { if (!cancelled) setAggScore(res); })
+      .catch(err => {
+        if (!cancelled) setScoreError(err instanceof Error ? err.message : 'Failed to score');
+      })
+      .finally(() => { if (!cancelled) setScoreLoading(false); });
+    return () => { cancelled = true; };
+    // idKey captures the exact set of orders in view; token guards auth.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idKey, token]);
 
   // Aggregate totals
   const totals = filtered.reduce(
@@ -176,6 +209,17 @@ export default function ProcurementDashboard({
             <MetricCard label="Acidification"       value={totals.so2_kg}   unit="kg SO₂-eq"  decimals={4} />
             <MetricCard label="Eutrophication FW"   value={totals.p_kg}     unit="kg P-eq"    decimals={5} />
             <MetricCard label="Eutrophication Mar." value={totals.n_kg}     unit="kg N-eq"    decimals={4} />
+          </div>
+
+          {/* Aggregate EAT-Lancet alignment across all orders in view */}
+          <div className="dash-score-section">
+            {scoreLoading ? (
+              <p className="stub-desc">Scoring {filtered.length} order{filtered.length !== 1 ? 's' : ''}…</p>
+            ) : scoreError ? (
+              <p className="login-error">{scoreError}</p>
+            ) : aggScore ? (
+              <ScoreCard scores={aggScore} />
+            ) : null}
           </div>
 
           <div className="dash-summary">

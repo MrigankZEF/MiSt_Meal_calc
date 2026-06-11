@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,6 +20,18 @@ from app.services.footprint.compute import compute_totals_async
 from app.services.scoring.scorers import compute_scores_async
 
 router = APIRouter(prefix="/api/procurement", tags=["procurement"])
+
+
+class AggregateScoreRequest(BaseModel):
+    entry_ids: list[uuid.UUID]
+
+
+class AggregateScoreResponse(BaseModel):
+    eat_lancet: float
+    planetary_health: float
+    dimension_levels: dict[str, int]
+    entry_count: int
+    item_count: int
 
 
 @router.get("", response_model=list[ProcurementListItem])
@@ -98,6 +111,57 @@ async def create_procurement(
         .options(selectinload(ProcurementEntry.items))
     )
     return result.scalar_one()
+
+
+@router.post("/aggregate-score", response_model=AggregateScoreResponse)
+async def aggregate_score(
+    body: AggregateScoreRequest,
+    user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_user_session),
+) -> AggregateScoreResponse:
+    """Score the *pooled* items of several procurement entries as one basket.
+
+    The frontend passes the IDs of the orders currently in view (after the
+    period filter).  We pool every item across those orders — weighted by its
+    saved amount — and run the EAT-Lancet scorer once.  Averaging the stored
+    per-order scores would be meaningless; pooling the underlying quantities is
+    the correct aggregation, mirroring how the environmental totals are summed.
+    """
+    if not body.entry_ids:
+        return AggregateScoreResponse(
+            eat_lancet=0.0, planetary_health=0.0,
+            dimension_levels={}, entry_count=0, item_count=0,
+        )
+
+    result = await session.execute(
+        select(ProcurementEntry)
+        .where(
+            ProcurementEntry.id.in_(body.entry_ids),
+            ProcurementEntry.user_id == user.id,
+        )
+        .options(selectinload(ProcurementEntry.items))
+    )
+    entries = result.scalars().all()
+
+    item_tuples = [
+        (item.rivm_item_id, item.amount, item.unit)
+        for entry in entries
+        for item in entry.items
+    ]
+    if not item_tuples:
+        return AggregateScoreResponse(
+            eat_lancet=0.0, planetary_health=0.0,
+            dimension_levels={}, entry_count=len(entries), item_count=0,
+        )
+
+    scores = await compute_scores_async(item_tuples)
+    return AggregateScoreResponse(
+        eat_lancet=scores["eat_lancet"],
+        planetary_health=scores["planetary_health"],
+        dimension_levels=scores["dimension_levels"],
+        entry_count=len(entries),
+        item_count=len(item_tuples),
+    )
 
 
 @router.get("/{entry_id}", response_model=ProcurementOut)

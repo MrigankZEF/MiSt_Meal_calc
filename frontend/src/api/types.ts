@@ -248,6 +248,11 @@ export interface ScoreResponse {
   dimension_levels: Record<string, number>;
 }
 
+export interface AggregateScoreResponse extends ScoreResponse {
+  entry_count: number;
+  item_count: number;
+}
+
 export interface EatLancetTagItem {
   nevo_code: number;
   bucket: string;

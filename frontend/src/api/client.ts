@@ -1,4 +1,5 @@
 import type {
+  AggregateScoreResponse,
   EatLancetTagItem,
   EatLancetTagUpdate,
   IngredientSearchResponse,
@@ -187,6 +188,21 @@ export async function deleteProcurement(
     headers: authHeaders(token),
   });
   await assertOk(res);
+}
+
+/** Aggregate EAT-Lancet scores for a set of saved orders, pooled as one basket.
+ *  Used by the Procurement history dashboard (respects the period filter). */
+export async function aggregateProcurementScore(
+  token: string,
+  entryIds: string[],
+): Promise<AggregateScoreResponse> {
+  const res = await fetch(`${BASE}/api/procurement/aggregate-score`, {
+    method: 'POST',
+    headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entry_ids: entryIds }),
+  });
+  await assertOk(res);
+  return res.json() as Promise<AggregateScoreResponse>;
 }
 
 // ── Scoring ────────────────────────────────────────────────────────────────

@@ -4,6 +4,14 @@ Newest-first. Each entry: date · author · summary, then bullet details.
 
 ---
 
+- **2026-06-11 · Claude (CLI) · Aggregate EAT-Lancet scores on Procurement history dashboard**
+  - New endpoint `POST /api/procurement/aggregate-score`: pools all items across the orders currently in view (after the period filter), weighted by saved amount, and scores the combined basket **once** (averaging per-order scores would be meaningless). Auth-guarded; reads only; no schema change.
+  - `ProcurementDashboard` shows a `ScoreCard` (EAT-Lancet Alignment + Planetary Health) between the metric cards and the order list; recomputes whenever the filtered order set changes (keyed on sorted IDs, with request cancellation). Respects the period filter (2W/1M/3M/1Y/All/Custom).
+  - Procurement tab only — Meals tab unchanged (per-meal aggregation doesn't make sense there).
+  - Always recomputes from items, so pre-redesign orders also reflect the corrected scoring. `tsc --noEmit` clean.
+
+---
+
 - **2026-05-03 · Claude (CLI) · EAT-Lancet scoring redesign — veg_and_fruit, whole_grains fix, oil exclusion, re-seed**
   - **`plant_volume` → `veg_and_fruit`** across scorers, level_mapping, frontend ScoreCard. Dimension now covers only `plant_veg + plant_fruit` (not grains/legumes, matching academic literature).
   - **`whole_grains` dimension rewritten**: uses `whole_grain_kg / total_kg` (absolute fraction of meal) with thresholds 0/5/10/20%. No-grain meals now score L0 instead of L2 — removes the free 8 EAT points given to pure-meat meals.

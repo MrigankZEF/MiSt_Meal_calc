@@ -1550,6 +1550,10 @@ select.ingredient-variant {
   margin-bottom: 20px;
 }
 
+.dash-score-section {
+  margin-bottom: 20px;
+}
+
 /* CO₂ trend chart */
 .dash-trend {
   background: var(--surface);

@@ -357,6 +357,7 @@ export default function History() {
               openingId={openingEntryId}
               deletingId={deletingEntryId}
               onGoToProcurement={() => navigate('/procurement')}
+              token={token ?? ''}
             />
           )}
         </>
